@@ -268,6 +268,15 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 정책/비용: 변경 없음.
 - 남은 것: README가 실행 지침을 중복하지 않도록 제품·문서 구조 변경 시에만 최신화한다.
 
+### 2026-09-09 — B01 저장소 초기화와 원격 연결
+
+- 작업: B01 / R20
+- 변경: `develop`을 통합 기준으로 두고 `chore/initial-project-foundation` 작업 브랜치에서 초기 프로젝트 커밋을 만들었다. GitHub `origin` 원격을 연결했다.
+- 실행: `npm run check`, React Doctor changed-scope 검사, 커밋 전 staged diff 검사, `git push -u origin chore/initial-project-foundation`을 실행했다.
+- 검증: lint, TypeScript, 단위 테스트 3건, 문서 검사와 React Doctor 100/100을 통과했다. GitHub 원격의 브랜치 SHA가 초기 커밋과 일치하는 것을 확인했다.
+- 정책/비용: 변경 없음.
+- 남은 것: 일상 작업은 `develop`을 기준으로 새 작업 브랜치를 만들고 PR로 통합한다.
+
 ## 공식 근거
 
 [D1]: https://docs.expo.dev/more/create-expo/
