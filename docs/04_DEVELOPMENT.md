@@ -1,6 +1,6 @@
 # 04. 개발계획, 실행 지침과 진행 기록
 
-버전 2.0 | 2026-09-09 | 단일 개발 진행 문서
+버전 2.0 | 2026-09-10 | 단일 개발 진행 문서
 
 ## 1. 이 패키지를 저장소에 적용하는 방법
 
@@ -211,7 +211,8 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 실제 Takeout 내보내기/파싱 | PARTIAL | 합성 CSV의 헤더·BOM·따옴표·줄바꿈·오류 파서는 검증. 본인 동의한 실제 비식별 fixture가 필요 |
 | 공유 링크 수신 inbox (B04) | PARTIAL | Android `ACTION_SEND` 수신 Activity와 7일·20개 한도 inbox는 debug APK까지 컴파일. iOS Share Extension/App Group CNG 생성과 모듈 autolinking은 확인했으나 Xcode·실기기 빌드는 BLOCKED |
 | Supabase migration/RLS (B05) | PARTIAL | 계정 상태·개인 저장·국제 지역 카탈로그의 migration/RLS/제한 상태 RPC를 작성했다. 로컬 DB 적용과 두 계정 RLS SQL 검증은 사용자 요청에 따라 미실행 |
-| 기능 구현 B05~B16 | NOT_STARTED | 단계별 진행 |
+| Google/Apple 인증·온보딩·세션 (B06) | PARTIAL | 제한 RPC와 모바일 인증 흐름을 작성했다. Supabase 프로젝트/provider·Apple 식별자 설정, 로컬 DB 적용, 실제 계정/재실행/로그아웃 교차 플랫폼 검증이 남았다. |
+| 기능 구현 B07~B16 | NOT_STARTED | 단계별 진행 |
 | 스토어 계정/인증서/도메인 | OWNER_SETUP_REQUIRED | 소유자 명의로 설정 |
 | 베타/심사/공개 출시 | NOT_STARTED | M6, 승인과 공개를 별도 기록 |
 
@@ -234,6 +235,7 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 2026-09-09 | 공유 웹은 Vite + React로 구성 | 앱 미설치 열람에 필요한 작은 정적 웹 범위 유지 |
 | 2026-09-09 | B05의 직접 Data API 쓰기는 차단 | 이후 B06/B07의 검증된 Edge/RPC만 프로필·저장·폴더를 변경하며, 현재는 활성 소유자의 읽기만 허용 |
 | 2026-09-09 | 루트 README를 제품 소개와 문서 진입점으로 유지 | 실행 명령 중심이 아닌 제품 이해를 위한 첫 화면 제공 |
+| 2026-09-10 | B06의 계정 초기화·온보딩은 공개 schema의 제한 RPC로만 허용 | 직접 Data API 쓰기 권한을 유지하지 않고, 인증된 사용자가 자기 `auth.uid()`에 대해서만 onboarding→active 전환하도록 한다. |
 
 ## 10. 문서 패키지 QA
 
@@ -316,6 +318,15 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 검증: 사용자 요청에 따라 Supabase local start/reset, migration apply, RLS SQL, lint/typecheck/unit은 실행하지 않았다. 따라서 빈 DB 재생성과 타 계정 접근 거부는 아직 검증되지 않았다.
 - 정책/비용: 실제 Supabase 프로젝트/계정/DB에는 연결하거나 변경하지 않았다. Google Places 콘텐츠는 저장하지 않고 opaque Place ID 참조만 둔다. 지역 카탈로그에는 임의 국가/행정구역 seed를 넣지 않았으며, 원본·라이선스 확정 후 서버 관리 경로로 적재한다.
 - 남은 것: 로컬 DB를 초기화해 migration을 적용하고 두 테스트 계정으로 owner/active/onboarding/suspended, 직접 쓰기 거부, 지역 카탈로그 read를 SQL로 검증한다. B06에서 bootstrap/onboarding Edge 경로, B07에서 멱등 저장/폴더 변경 RPC를 추가한다.
+
+### 2026-09-10 — B06 인증·온보딩·세션 기반
+
+- 작업: B06 / R12, R19
+- 변경: `bootstrap_account`와 `complete_onboarding` 제한 RPC migration을 추가해, 인증된 사용자가 자신의 계정 상태를 onboarding으로 만들고 공개 프로필·언어·동의 기록을 한 트랜잭션으로 active 상태에만 전환할 수 있게 했다. 앱은 Google system-browser OAuth PKCE, iOS 네이티브 Sign in with Apple 및 Android Apple browser OAuth 경로, 핸들/이름/언어 온보딩, 로그아웃, Supabase AppState token refresh를 연결했다. 세션은 Expo SecureStore에 UTF-8 단위로 분할 저장하며 새 manifest를 마지막에 기록해 중단된 쓰기가 이전 세션을 덮지 않게 했다. 로그인 provider의 이름·이메일은 제품 프로필로 복사하지 않는다.
+- 실행: `supabase migration new add_account_bootstrap_and_onboarding`으로 migration 골격을 만들고 Supabase/Expo의 현재 인증·딥링크·Apple·SecureStore 공식 문서를 확인했다. 사용자 요청에 따라 lint/typecheck/unit, Supabase local start/reset·migration apply, Expo prebuild/build, 실제 provider 로그인은 실행하지 않았다.
+- 검증: 미실행이다. 따라서 migration 적용, 핸들 중복/계정 상태/RLS, 앱 재실행 후 세션 복구·로그아웃, iOS/Android의 Google/Apple 로그인은 검증 완료가 아니다.
+- 정책/비용: 실제 Supabase 프로젝트, OAuth client, Apple Developer entitlement/Services ID, Google/Apple provider 설정, 외부 계정·과금·키에는 연결하거나 변경하지 않았다. 공개 publishable key만 앱 설정에 사용하며 OAuth code, PKCE verifier, access/refresh token은 로그 또는 화면에 출력하지 않는다. Google 로그인은 Google Maps 저장목록 읽기 권한과 분리한다.
+- 남은 것: 소유자가 개발 Supabase 프로젝트에 `live-to-eat-dev://auth/callback`을 정확히 allowlist하고 URL/publishable key, Google provider client 설정, Apple native bundle ID·Services ID/provider 설정을 완료해야 한다. `ios.usesAppleSignIn` 추가 후 새 iOS development build가 필요하다. 공개 이용약관·개인정보 안내와 실제 버전을 확정해 development consent 값을 교체하고, 계정 복구/검증된 provider 연결·마지막 provider 해제 방지·탈퇴/Apple 철회는 B15에서 구현한다.
 
 ## 공식 근거
 

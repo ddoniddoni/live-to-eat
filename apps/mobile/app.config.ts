@@ -27,6 +27,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       bundleIdentifier: iosBundleIdentifier,
       deploymentTarget: '16.4',
       supportsTablet: true,
+      usesAppleSignIn: true,
     },
     android: {
       ...config.android,

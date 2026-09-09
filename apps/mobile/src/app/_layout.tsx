@@ -3,8 +3,10 @@ import '@/lib/i18n';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { configureSupabaseAutoRefresh } from '@/lib/supabase/client';
 
 export default function RootLayout() {
   const [queryClient] = useState(
@@ -18,6 +20,8 @@ export default function RootLayout() {
         },
       }),
   );
+
+  useEffect(() => configureSupabaseAutoRefresh(), []);
 
   return (
     <SafeAreaProvider>

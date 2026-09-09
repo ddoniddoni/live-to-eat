@@ -1,13 +1,38 @@
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radii, spacing, type } from '@/components/tokens';
+import { AuthGate } from '@/features/auth/AuthGate';
+import type { SupportedLocale } from '@/features/auth/authApi';
+import { useAuthSession } from '@/features/auth/useAuthSession';
 import { MapCanvas } from '@/features/maps/MapCanvas';
 import { ShareInboxNotice } from '@/features/share-inbox/ShareInboxNotice';
 import { useShareInbox } from '@/features/share-inbox/useShareInbox';
+import i18n from '@/lib/i18n';
 
-export default function MyMapScreen() {
+export default function HomeScreen() {
+  const auth = useAuthSession();
+
+  const changeLanguage = async (locale: SupportedLocale): Promise<void> => {
+    await i18n.changeLanguage(locale);
+  };
+
+  useEffect(() => {
+    if (auth.locale) void i18n.changeLanguage(auth.locale);
+  }, [auth.locale]);
+
+  if (auth.status !== 'active') return <AuthGate auth={auth} onChangeLanguage={changeLanguage} />;
+
+  return <MyMapScreen onSignOut={auth.signOut} />;
+}
+
+type MyMapScreenProps = {
+  onSignOut: () => Promise<void>;
+};
+
+function MyMapScreen({ onSignOut }: MyMapScreenProps) {
   const { t } = useTranslation();
   const shareInbox = useShareInbox();
 
@@ -21,9 +46,14 @@ export default function MyMapScreen() {
             </Text>
             <Text style={styles.subtitle}>{t('map.subtitle')}</Text>
           </View>
-          <View accessibilityLabel={t('map.private')} accessibilityRole="text" style={styles.privacyPill}>
-            <View accessibilityElementsHidden style={styles.privacyDot} />
-            <Text style={styles.privacyText}>{t('map.private')}</Text>
+          <View style={styles.headerActions}>
+            <View accessibilityLabel={t('map.private')} accessibilityRole="text" style={styles.privacyPill}>
+              <View accessibilityElementsHidden style={styles.privacyDot} />
+              <Text style={styles.privacyText}>{t('map.private')}</Text>
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => void onSignOut()} style={styles.signOutButton}>
+              <Text style={styles.signOutText}>{t('map.signOut')}</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -63,6 +93,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  headerActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   title: {
     color: colors.ink,
     fontFamily: type.display,
@@ -100,6 +134,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.7,
     textTransform: 'uppercase',
+  },
+  signOutButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+  },
+  signOutText: {
+    color: colors.muted,
+    fontFamily: type.body,
+    fontSize: 12,
+    fontWeight: '700',
   },
   emptyPanel: {
     backgroundColor: colors.ink,
