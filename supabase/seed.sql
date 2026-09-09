@@ -1,0 +1,1 @@
+-- Synthetic development data only. Never add real user or Google Takeout data here.

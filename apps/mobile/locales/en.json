@@ -1,0 +1,15 @@
+{
+  "bootstrap": {
+    "label": "project foundation",
+    "statement": "Live to eat. Save every place worth returning to.",
+    "title": "The foundation is ready",
+    "body": "The mobile app, share web, and domain boundaries are in place before product work begins.",
+    "ready": "ready",
+    "items": {
+      "workspace": "npm workspace",
+      "mobile": "Expo mobile app",
+      "share": "share web"
+    },
+    "footnote": "Maps, Places, and sign-in remain unverified until they run with real keys and accounts."
+  }
+}

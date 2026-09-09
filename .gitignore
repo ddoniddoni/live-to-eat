@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.expo/
+.firebase/
+.DS_Store
+*.log
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.local
+
+# CNG output: regenerate from app.config.ts and config plugins
+apps/mobile/android/
+apps/mobile/ios/
+
+# Local Supabase state
+supabase/.branches/
+supabase/.temp/
