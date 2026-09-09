@@ -11,5 +11,28 @@
       "share": "공유 웹"
     },
     "footnote": "지도·Places·로그인은 실제 키와 계정으로 검증하기 전까지 완료로 표시하지 않습니다."
+  },
+  "map": {
+    "title": "내 지도",
+    "subtitle": "좋았던 한 끼를 위한 비공개 지도",
+    "private": "비공개",
+    "provider": "GOOGLE 지도",
+    "canvasLabel": "대화형 Google 지도",
+    "canvasHint": "지도를 이동하거나 확대해 장소를 살펴볼 수 있어요. 현재 위치 권한은 요청하지 않아요.",
+    "loading": "지도 불러오는 중",
+    "configurationTitle": "Google 지도 설정이 필요해요",
+    "configurationBody": "이 개발 빌드에서 실제 지도를 보려면 제한된 iOS와 Android 지도 키를 추가하세요.",
+    "emptyEyebrow": "내가 저장한 장소",
+    "emptyTitle": "내 지도가 기다리고 있어요.",
+    "emptyBody": "저장한 장소는 나만의 비공개 기록으로 여기에 표시돼요. 다른 사람 지도에 있는 장소가 자동으로 추가되지는 않아요.",
+    "locationNote": "위치 권한은 선택이에요. 어느 나라나 도시에서 시작해도 됩니다."
+  },
+  "shareInbox": {
+    "accessibilityLabel": "공유 받은 장소 링크",
+    "eyebrow": "공유 받은 링크",
+    "title": "장소 링크가 도착했어요.",
+    "body": "아직 내 지도에는 저장되지 않았어요. 장소 정보를 확인한 뒤에만 저장할 수 있어요.",
+    "discard": "지우기",
+    "discardHint": "이 공유 링크를 기기 inbox에서 제거합니다."
   }
 }

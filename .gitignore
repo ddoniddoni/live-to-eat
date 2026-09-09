@@ -16,6 +16,9 @@ coverage/
 apps/mobile/android/
 apps/mobile/ios/
 
+# Local Expo module build output: regenerate with Gradle
+modules/*/android/build/
+
 # Local Supabase state
 supabase/.branches/
 supabase/.temp/

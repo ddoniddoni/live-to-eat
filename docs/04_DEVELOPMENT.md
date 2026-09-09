@@ -206,8 +206,10 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 실제 저장소/기존 코드 조사 | 완료 | 기존 `live-to-eat` 프로젝트가 없음을 확인하고 신규 workspace 구성 |
 | Expo/RN/지도/Node exact version | 선정/검증 | lockfile 고정, Expo Doctor 21/21 및 Expo 의존성 검사 통과 |
 | iOS/Android build | PARTIAL | Android debug APK 빌드 성공. iOS JS bundle 성공, 네이티브 빌드는 Xcode 미설치로 BLOCKED |
+| 앱 지도 화면과 Google provider | PARTIAL | Android JS bundle에 `react-native-maps` Google provider 포함. 실제 타일 렌더링은 제한된 네이티브 키와 실기기 검증 전 BLOCKED |
 | 실제 Google Places 호출 | NOT_STARTED | 소유자 승인/키/쿼터 후 M0 |
-| 실제 Takeout 내보내기/파싱 | NOT_STARTED | 본인 동의한 샘플과 비식별 fixture로 M0 |
+| 실제 Takeout 내보내기/파싱 | PARTIAL | 합성 CSV의 헤더·BOM·따옴표·줄바꿈·오류 파서는 검증. 본인 동의한 실제 비식별 fixture가 필요 |
+| 공유 링크 수신 inbox (B04) | PARTIAL | Android `ACTION_SEND` 수신 Activity와 7일·20개 한도 inbox는 debug APK까지 컴파일. iOS Share Extension/App Group CNG 생성과 모듈 autolinking은 확인했으나 Xcode·실기기 빌드는 BLOCKED |
 | Supabase migration/RLS | NOT_STARTED | M1 |
 | 기능 구현 B05~B16 | NOT_STARTED | 단계별 진행 |
 | 스토어 계정/인증서/도메인 | OWNER_SETUP_REQUIRED | 소유자 명의로 설정 |
@@ -226,6 +228,7 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 2026-09-09 | 개인 폴더 P0 | 가져온 Google 리스트 이름/소속 보존 |
 | 2026-09-09 | 작은 공유 웹 P0 | 앱 미설치자의 지역 공유 열람 유지 |
 | 2026-09-09 | iOS 정상 Share Extension | 실험적 메인앱 자동 열기 회피 |
+| 2026-09-09 | iOS 공유 수신은 자체 App Group inbox와 Swift 확장으로 구현 | Expo 57의 incoming-sharing iOS 자동 main-app 실행 방식은 P0 정책과 맞지 않음 |
 | 2026-09-09 | Google 좌표 DB 캐시는 기본 비활성 | 저장/백업 수명 확인 후 허용 범위에서 활성화 |
 | 2026-09-09 | 제품명 `LiveToEat`, 저장소/패키지명 `live-to-eat` | 사용자 지정 |
 | 2026-09-09 | 공유 웹은 Vite + React로 구성 | 앱 미설치 열람에 필요한 작은 정적 웹 범위 유지 |
@@ -276,6 +279,33 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 검증: lint, TypeScript, 단위 테스트 3건, 문서 검사와 React Doctor 100/100을 통과했다. GitHub 원격의 브랜치 SHA가 초기 커밋과 일치하는 것을 확인했다.
 - 정책/비용: 변경 없음.
 - 남은 것: 일상 작업은 `develop`을 기준으로 새 작업 브랜치를 만들고 PR로 통합한다.
+
+### 2026-09-09 — B02 지도 화면과 Google provider 연결 시작
+
+- 작업: B02 / R02, R17
+- 변경: `MapView`를 iOS/Android 모두 `PROVIDER_GOOGLE`로 렌더링하는 내 지도 화면을 추가했다. 현재 위치 권한을 요청하지 않고 전 세계 초기 범위를 보여 주며, 저장이 비공개이고 타인의 기록이 자동 추가되지 않음을 빈 상태에서 안내한다. 실제 Google Maps 키가 설정됐는지는 키를 노출하지 않는 boolean config로만 앱에 전달한다.
+- 실행: mobile lint/typecheck와 제한된 개발 환경변수를 로드한 Android Expo export를 실행했다.
+- 검증: lint/typecheck 통과, Android bundle 1개를 `/private/tmp/live-to-eat-b02-android`에 성공적으로 export했다. 지도 저작자 표시는 MapView의 하단을 가리지 않도록 화면 오버레이를 상단에만 배치했다.
+- 정책/비용: Google Maps SDK와 Google Places API (New)를 별도 경계로 유지했다. Places 서버 호출, API 키/결제 계정 생성, 실제 Google API 요청은 하지 않았다.
+- 남은 것: 소유자가 iOS bundle ID와 Android package/SHA-1에 제한된 실제 Maps 키를 설정한 뒤, iOS/Android 실기기에서 지도 타일과 저작자 표시를 확인한다. 이후 Places API (New)를 Edge Function 경계로 구현하고 장소 10건 검색/표시와 호출 계측을 검증한다.
+
+### 2026-09-09 — B03 Takeout 저장목록 CSV 파서 프로토타입
+
+- 작업: B03 / R13, R15
+- 변경: 공통 도메인 패키지에 Google Takeout 저장목록 CSV를 정규화하는 파서를 추가했다. 설명행/빈 행 뒤의 알려진 헤더, UTF-8 BOM, 따옴표 안 쉼표·줄바꿈, title/URL/note/tags/comment을 처리한다. 입력 URL이 유효하지 않으면 제목은 보존하되 URL을 신뢰하지 않는 경고를 남긴다. 알 수 없는 헤더와 깨진 따옴표 CSV는 추측하지 않고 거절한다.
+- 실행: domain unit test, typecheck, lint를 실행했다.
+- 검증: 단위 테스트 7건이 통과했다. 합성 fixture에서 개인 폴더명, 개인 note/comment, tags, 안정적 행 키와 malformed CSV 거절을 확인했다.
+- 정책/비용: 개인 입력은 정규화 결과의 private import 후보로만 다룬다. Google API 호출, 실제 사용자 파일 읽기/업로드, 공개 장소 데이터 생성은 하지 않았다.
+- 남은 것: 본인 동의 및 비식별화한 실제 Takeout fixture로 실제 헤더/경로/목록명/좌표 유무를 검증한다. ZIP 선택·크기/압축 보안 검사·여러 파일 처리·모바일 미리보기와 서버 batch commit은 후속 B09/B10 범위다.
+
+### 2026-09-09 — B04 공유 링크 수신 inbox 스파이크
+
+- 작업: B04 / R14
+- 변경: `modules/share-inbox`에 Android `text/plain` `ACTION_SEND` 전용 수신 Activity와 Expo native module, iOS App Group inbox native module을 추가했다. iOS CNG plugin은 정상 Share Extension target을 생성하고 링크/텍스트 한 건을 App Group에 기록한 뒤 요청을 완료한다. 메인 앱을 여는 코드와 로그인 토큰 공유는 넣지 않았다. 공통 domain은 HTTP(S) URL만 동일한 `google_url` 후보 입력으로 정규화하고, redirect/Google Place ID 추출/자동 저장을 하지 않는다. 앱은 수신 링크의 host만 표시하고 사용자가 지울 수 있게 하며, 저장은 이후 장소 확인 흐름이 맡는다.
+- 실행: domain unit test·mobile/domain typecheck·lint, iOS `expo prebuild --platform ios --no-install`, iOS/Android Expo module autolinking resolve, Android `expo prebuild --platform android --no-install`, Android `./gradlew app:assembleDebug`, Android Expo export를 실행했다.
+- 검증: domain 테스트 10건이 통과했고 만료, 비 HTTP(S) 입력, 동일 링크 중복 제거를 확인했다. iOS 생성 프로젝트에 `LiveToEatShareInbox` extension target, main/extension App Group entitlement, 앱 자동 열기 호출이 없는 Swift source가 생성됐다. Android debug APK와 JS bundle이 생성됐고 병합 manifest에 `ShareInboxActivity`의 `ACTION_SEND` + `text/plain` filter가 포함됐다. 로컬 `xcodebuild`는 Xcode 대신 Command Line Tools만 가리켜 iOS 네이티브 빌드는 실행할 수 없었다.
+- 정책/비용: 외부 URL fetch, Google API/Place ID 해석, 계정/키/도메인/과금 변경은 하지 않았다. inbox는 기기 로컬 7일·최대 20개로 제한하며, 화면에는 원문이 아닌 host만 표시한다.
+- 남은 것: 실제 Android 기기에서 Google Maps 공유 시 cold/warm start와 중복 제거를 녹화하고, Xcode·등록된 App Group을 준비해 iOS extension을 실제 서명/실기기 검증한다. B11에서 서버 Place Details 확인과 사용자 저장·로그아웃 계정 경계를 연결한다.
 
 ## 공식 근거
 

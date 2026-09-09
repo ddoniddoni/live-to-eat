@@ -3,49 +3,45 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radii, spacing, type } from '@/components/tokens';
+import { MapCanvas } from '@/features/maps/MapCanvas';
+import { ShareInboxNotice } from '@/features/share-inbox/ShareInboxNotice';
+import { useShareInbox } from '@/features/share-inbox/useShareInbox';
 
-const readiness = ['workspace', 'mobile', 'share'] as const;
-
-export default function BootstrapScreen() {
+export default function MyMapScreen() {
   const { t } = useTranslation();
+  const shareInbox = useShareInbox();
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.page}>
         <View style={styles.headerRow}>
-          <Text accessibilityRole="text" style={styles.eyebrow}>
-            M0 · {t('bootstrap.label')}
-          </Text>
-          <View accessibilityElementsHidden style={styles.mark}>
-            <View style={styles.markDot} />
-            <View style={styles.markLine} />
-            <View style={[styles.markDot, styles.markDotEnd]} />
+          <View>
+            <Text accessibilityRole="header" style={styles.title}>
+              {t('map.title')}
+            </Text>
+            <Text style={styles.subtitle}>{t('map.subtitle')}</Text>
+          </View>
+          <View accessibilityLabel={t('map.private')} accessibilityRole="text" style={styles.privacyPill}>
+            <View accessibilityElementsHidden style={styles.privacyDot} />
+            <Text style={styles.privacyText}>{t('map.private')}</Text>
           </View>
         </View>
 
-        <View style={styles.hero}>
-          <Text accessibilityRole="header" style={styles.wordmark}>
-            LiveToEat
-          </Text>
-          <Text style={styles.statement}>{t('bootstrap.statement')}</Text>
-        </View>
+        {shareInbox.candidates.length > 0 ? (
+          <ShareInboxNotice candidates={shareInbox.candidates} onDiscard={shareInbox.discard} />
+        ) : null}
 
-        <View style={styles.statusPanel}>
-          <Text style={styles.panelTitle}>{t('bootstrap.title')}</Text>
-          <Text style={styles.panelBody}>{t('bootstrap.body')}</Text>
+        <MapCanvas />
 
-          <View style={styles.readinessList}>
-            {readiness.map((item) => (
-              <View key={item} style={styles.readinessRow}>
-                <View accessibilityElementsHidden style={styles.statusDot} />
-                <Text style={styles.readinessLabel}>{t(`bootstrap.items.${item}`)}</Text>
-                <Text style={styles.readinessState}>{t('bootstrap.ready')}</Text>
-              </View>
-            ))}
+        <View style={styles.emptyPanel}>
+          <Text style={styles.emptyEyebrow}>{t('map.emptyEyebrow')}</Text>
+          <Text style={styles.emptyTitle}>{t('map.emptyTitle')}</Text>
+          <Text style={styles.emptyBody}>{t('map.emptyBody')}</Text>
+          <View style={styles.locationNote}>
+            <View accessibilityElementsHidden style={styles.locationDot} />
+            <Text style={styles.locationText}>{t('map.locationNote')}</Text>
           </View>
         </View>
-
-        <Text style={styles.footnote}>{t('bootstrap.footnote')}</Text>
       </View>
     </SafeAreaView>
   );
@@ -58,7 +54,7 @@ const styles = StyleSheet.create({
   },
   page: {
     flex: 1,
-    justifyContent: 'space-between',
+    gap: spacing.md,
     paddingHorizontal: spacing.page,
     paddingVertical: spacing.lg,
   },
@@ -67,106 +63,93 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  eyebrow: {
-    color: colors.muted,
-    fontFamily: type.utility,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-  },
-  mark: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  markDot: {
-    backgroundColor: colors.tomato,
-    borderRadius: radii.pill,
-    height: 12,
-    width: 12,
-  },
-  markDotEnd: {
-    backgroundColor: colors.wasabi,
-  },
-  markLine: {
-    backgroundColor: colors.ink,
-    height: 2,
-    width: 36,
-  },
-  hero: {
-    gap: spacing.md,
-  },
-  wordmark: {
+  title: {
     color: colors.ink,
     fontFamily: type.display,
-    fontSize: 58,
+    fontSize: 34,
     fontWeight: '900',
-    letterSpacing: -3.6,
-    lineHeight: 62,
+    letterSpacing: -1.5,
+    lineHeight: 37,
   },
-  statement: {
-    color: colors.ink,
+  subtitle: {
+    color: colors.muted,
     fontFamily: type.body,
-    fontSize: 22,
+    fontSize: 13,
     fontWeight: '600',
-    letterSpacing: -0.5,
-    lineHeight: 31,
-    maxWidth: 300,
+    marginTop: 2,
   },
-  statusPanel: {
+  privacyPill: {
+    alignItems: 'center',
+    backgroundColor: colors.ink,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 8,
+  },
+  privacyDot: {
+    backgroundColor: colors.wasabi,
+    borderRadius: radii.pill,
+    height: 7,
+    width: 7,
+  },
+  privacyText: {
+    color: colors.paper,
+    fontFamily: type.utility,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+  },
+  emptyPanel: {
     backgroundColor: colors.ink,
     borderRadius: radii.panel,
-    gap: spacing.sm,
+    gap: 6,
     padding: spacing.lg,
   },
-  panelTitle: {
+  emptyEyebrow: {
+    color: colors.wasabi,
+    fontFamily: type.utility,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  emptyTitle: {
     color: colors.paper,
     fontFamily: type.display,
     fontSize: 24,
     fontWeight: '800',
     letterSpacing: -0.7,
+    lineHeight: 29,
   },
-  panelBody: {
+  emptyBody: {
     color: colors.panelMuted,
     fontFamily: type.body,
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
+    maxWidth: 320,
   },
-  readinessList: {
-    gap: spacing.xs,
-    marginTop: spacing.md,
-  },
-  readinessRow: {
+  locationNote: {
     alignItems: 'center',
     borderTopColor: colors.rule,
     borderTopWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
-    minHeight: 43,
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
   },
-  statusDot: {
-    backgroundColor: colors.wasabi,
+  locationDot: {
+    backgroundColor: colors.tomato,
     borderRadius: radii.pill,
     height: 8,
-    marginRight: spacing.sm,
     width: 8,
   },
-  readinessLabel: {
-    color: colors.paper,
+  locationText: {
+    color: colors.panelMuted,
     flex: 1,
     fontFamily: type.body,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
-  },
-  readinessState: {
-    color: colors.wasabi,
-    fontFamily: type.utility,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  footnote: {
-    color: colors.muted,
-    fontFamily: type.body,
-    fontSize: 13,
-    lineHeight: 19,
   },
 });

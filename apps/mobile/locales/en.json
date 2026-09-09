@@ -11,5 +11,28 @@
       "share": "share web"
     },
     "footnote": "Maps, Places, and sign-in remain unverified until they run with real keys and accounts."
+  },
+  "map": {
+    "title": "My map",
+    "subtitle": "A private atlas for every good meal",
+    "private": "private",
+    "provider": "GOOGLE MAPS",
+    "canvasLabel": "Interactive Google map",
+    "canvasHint": "Pan and zoom to explore a location. Your current location is not requested.",
+    "loading": "Loading map",
+    "configurationTitle": "Google Maps setup needed",
+    "configurationBody": "Add restricted iOS and Android Maps keys to see the live map in this development build.",
+    "emptyEyebrow": "Your places",
+    "emptyTitle": "Your map is waiting.",
+    "emptyBody": "Saved places will appear here as your own private record. Nothing from someone else’s map is added automatically.",
+    "locationNote": "Location is optional. Start with any country or city."
+  },
+  "shareInbox": {
+    "accessibilityLabel": "Shared place link",
+    "eyebrow": "Shared link",
+    "title": "A place link is ready.",
+    "body": "It has not been saved to your map. You will confirm the place before saving it.",
+    "discard": "Discard",
+    "discardHint": "Removes this shared link from the device inbox."
   }
 }
