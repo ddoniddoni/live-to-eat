@@ -210,7 +210,7 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 실제 Google Places 호출 | NOT_STARTED | 소유자 승인/키/쿼터 후 M0 |
 | 실제 Takeout 내보내기/파싱 | PARTIAL | 합성 CSV의 헤더·BOM·따옴표·줄바꿈·오류 파서는 검증. 본인 동의한 실제 비식별 fixture가 필요 |
 | 공유 링크 수신 inbox (B04) | PARTIAL | Android `ACTION_SEND` 수신 Activity와 7일·20개 한도 inbox는 debug APK까지 컴파일. iOS Share Extension/App Group CNG 생성과 모듈 autolinking은 확인했으나 Xcode·실기기 빌드는 BLOCKED |
-| Supabase migration/RLS | NOT_STARTED | M1 |
+| Supabase migration/RLS (B05) | PARTIAL | 계정 상태·개인 저장·국제 지역 카탈로그의 migration/RLS/제한 상태 RPC를 작성했다. 로컬 DB 적용과 두 계정 RLS SQL 검증은 사용자 요청에 따라 미실행 |
 | 기능 구현 B05~B16 | NOT_STARTED | 단계별 진행 |
 | 스토어 계정/인증서/도메인 | OWNER_SETUP_REQUIRED | 소유자 명의로 설정 |
 | 베타/심사/공개 출시 | NOT_STARTED | M6, 승인과 공개를 별도 기록 |
@@ -232,6 +232,7 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 2026-09-09 | Google 좌표 DB 캐시는 기본 비활성 | 저장/백업 수명 확인 후 허용 범위에서 활성화 |
 | 2026-09-09 | 제품명 `LiveToEat`, 저장소/패키지명 `live-to-eat` | 사용자 지정 |
 | 2026-09-09 | 공유 웹은 Vite + React로 구성 | 앱 미설치 열람에 필요한 작은 정적 웹 범위 유지 |
+| 2026-09-09 | B05의 직접 Data API 쓰기는 차단 | 이후 B06/B07의 검증된 Edge/RPC만 프로필·저장·폴더를 변경하며, 현재는 활성 소유자의 읽기만 허용 |
 | 2026-09-09 | 루트 README를 제품 소개와 문서 진입점으로 유지 | 실행 명령 중심이 아닌 제품 이해를 위한 첫 화면 제공 |
 
 ## 10. 문서 패키지 QA
@@ -306,6 +307,15 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 검증: domain 테스트 10건이 통과했고 만료, 비 HTTP(S) 입력, 동일 링크 중복 제거를 확인했다. iOS 생성 프로젝트에 `LiveToEatShareInbox` extension target, main/extension App Group entitlement, 앱 자동 열기 호출이 없는 Swift source가 생성됐다. Android debug APK와 JS bundle이 생성됐고 병합 manifest에 `ShareInboxActivity`의 `ACTION_SEND` + `text/plain` filter가 포함됐다. 로컬 `xcodebuild`는 Xcode 대신 Command Line Tools만 가리켜 iOS 네이티브 빌드는 실행할 수 없었다.
 - 정책/비용: 외부 URL fetch, Google API/Place ID 해석, 계정/키/도메인/과금 변경은 하지 않았다. inbox는 기기 로컬 7일·최대 20개로 제한하며, 화면에는 원문이 아닌 host만 표시한다.
 - 남은 것: 실제 Android 기기에서 Google Maps 공유 시 cold/warm start와 중복 제거를 녹화하고, Xcode·등록된 App Group을 준비해 iOS extension을 실제 서명/실기기 검증한다. B11에서 서버 Place Details 확인과 사용자 저장·로그아웃 계정 경계를 연결한다.
+
+### 2026-09-09 — B05 계정·저장·국제 지역 DB 기반
+
+- 작업: B05 / R07, R09
+- 변경: `private.account_states`와 공개 프로필·설정, Place ID 참조, 개인 저장/메모, 개인 폴더, 가변 깊이 `region_nodes`/`region_closure`, 저장 지역의 최초 migration을 추가했다. 지역 부모 순환과 다른 사용자의 폴더-저장 연결을 DB trigger로 거절한다. 직접 Data API에는 활성 소유자의 읽기와 인증된 지역 카탈로그 읽기만 grant/RLS로 열고, 변경은 이후 Edge/RPC에 남겼다. `public.current_account_state()`는 자신의 상태만 반환하는 제한 RPC이며, 활성 상태 확인 helper와 카탈로그 재구성 함수는 private schema에 둔다.
+- 실행: `supabase migration new create_account_and_region_foundation`으로 migration 골격을 만들었다. 최신 Supabase 변경과 RLS/Data API 권한 문서를 확인했다.
+- 검증: 사용자 요청에 따라 Supabase local start/reset, migration apply, RLS SQL, lint/typecheck/unit은 실행하지 않았다. 따라서 빈 DB 재생성과 타 계정 접근 거부는 아직 검증되지 않았다.
+- 정책/비용: 실제 Supabase 프로젝트/계정/DB에는 연결하거나 변경하지 않았다. Google Places 콘텐츠는 저장하지 않고 opaque Place ID 참조만 둔다. 지역 카탈로그에는 임의 국가/행정구역 seed를 넣지 않았으며, 원본·라이선스 확정 후 서버 관리 경로로 적재한다.
+- 남은 것: 로컬 DB를 초기화해 migration을 적용하고 두 테스트 계정으로 owner/active/onboarding/suspended, 직접 쓰기 거부, 지역 카탈로그 read를 SQL로 검증한다. B06에서 bootstrap/onboarding Edge 경로, B07에서 멱등 저장/폴더 변경 RPC를 추가한다.
 
 ## 공식 근거
 
