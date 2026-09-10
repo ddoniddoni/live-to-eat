@@ -7,6 +7,7 @@ import { colors, radii, spacing, type } from '@/components/tokens';
 import { AuthGate } from '@/features/auth/AuthGate';
 import type { SupportedLocale } from '@/features/auth/authApi';
 import { useAuthSession } from '@/features/auth/useAuthSession';
+import { TakeoutImportSheet } from '@/features/import/TakeoutImportSheet';
 import { MapCanvas } from '@/features/maps/MapCanvas';
 import { PlaceSearchSheet } from '@/features/places/PlaceSearchSheet';
 import { SavedPlaceSheet } from '@/features/places/SavedPlaceSheet';
@@ -45,6 +46,7 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
   const shareInbox = useShareInbox();
   const [isPlaceSearchVisible, setIsPlaceSearchVisible] = useState(false);
   const [isSavedPlacesVisible, setIsSavedPlacesVisible] = useState(false);
+  const [isTakeoutImportVisible, setIsTakeoutImportVisible] = useState(false);
   const [collections, setCollections] = useState<PrivateCollection[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlaceDraft[]>([]);
 
@@ -151,6 +153,13 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
           >
             <Text style={styles.addPlaceButtonText}>+ {t('map.addPlace')}</Text>
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setIsTakeoutImportVisible(true)}
+            style={styles.importTakeoutButton}
+          >
+            <Text style={styles.importTakeoutButtonText}>↓ {t('map.importTakeout')}</Text>
+          </Pressable>
           <View style={styles.locationNote}>
             <View accessibilityElementsHidden style={styles.locationDot} />
             <Text style={styles.locationText}>{t('map.locationNote')}</Text>
@@ -174,6 +183,9 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
             savedPlaces={savedPlaces}
             visible
           />
+        ) : null}
+        {isTakeoutImportVisible ? (
+          <TakeoutImportSheet onDismiss={() => setIsTakeoutImportVisible(false)} visible />
         ) : null}
       </View>
     </SafeAreaView>
@@ -290,6 +302,21 @@ const styles = StyleSheet.create({
     borderRadius: radii.panel,
     gap: 6,
     padding: spacing.lg,
+  },
+  importTakeoutButton: {
+    alignSelf: 'flex-start',
+    borderColor: '#657078',
+    borderRadius: radii.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 9,
+  },
+  importTakeoutButtonText: {
+    color: colors.paper,
+    fontFamily: type.body,
+    fontSize: 13,
+    fontWeight: '800',
   },
   emptyEyebrow: {
     color: colors.wasabi,

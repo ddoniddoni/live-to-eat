@@ -213,7 +213,8 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | Supabase migration/RLS (B05) | PARTIAL | 계정 상태·개인 저장·국제 지역 카탈로그의 migration/RLS/제한 상태 RPC를 작성했다. 로컬 DB 적용과 두 계정 RLS SQL 검증은 사용자 요청에 따라 미실행 |
 | Google/Apple 인증·온보딩·세션 (B06) | PARTIAL | 제한 RPC와 모바일 인증 흐름을 작성했다. Supabase 프로젝트/provider·Apple 식별자 설정, 로컬 DB 적용, 실제 계정/재실행/로그아웃 교차 플랫폼 검증이 남았다. |
 | 장소 검색·비공개 저장 기반 (B07) | PARTIAL | 검색→확인→비공개 저장, 개인 폴더 생성/선택/이름변경/삭제, 개인 기록 수정/삭제 UI와 Edge/RPC source를 추가했다. DB 적용·Edge 배포·실계정 확인과 재실행 후 목록은 미실행이다. |
-| 기능 구현 B08~B16 | NOT_STARTED | 단계별 진행 |
+| Takeout 파일 선택·검사·확인 저장 (B09, B10) | PARTIAL | CSV 단독/복수와 ZIP 안의 CSV를 기기에서 안전 한도 안에 검사·파싱하고, 각 행에서 후보·선택 지역을 확인한 뒤 private batch에 저장하는 흐름을 작성했다. 실제 Takeout fixture·악성 ZIP fixture·실기기 파일 선택·migration/RLS·실계정 저장 검증과 Takeout 폴더 보존은 남았다. |
+| 기능 구현 B08, B11~B16 | NOT_STARTED | 단계별 진행 |
 | 스토어 계정/인증서/도메인 | OWNER_SETUP_REQUIRED | 소유자 명의로 설정 |
 | 베타/심사/공개 출시 | NOT_STARTED | M6, 승인과 공개를 별도 기록 |
 
@@ -341,6 +342,24 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 검증: 미실행이다. 따라서 migration/RLS/RPC 권한, ticket 만료·중복 저장·분당 제한, Edge의 Google 오류 처리, 저장·수정·삭제 및 폴더 변경의 소유자 경계, 로그인한 계정의 재실행 후 목록 복구는 검증 완료가 아니다.
 - 정책/비용: `GOOGLE_PLACES_SERVER_KEY`와 Supabase secret/service key는 Edge runtime secret으로만 설정해야 하며 mobile env·로그·화면에 넣지 않는다. Google의 장소명·주소는 검색·확인 화면에서만 사용하고 DB에는 Place ID 및 사용자의 private 입력만 저장한다. 실제 Supabase/Google 프로젝트, 키, 과금, Edge 배포에는 연결하거나 변경하지 않았다.
 - 남은 것: 소유자 승인 후 개발 Supabase DB에 migration을 적용하고 `app` Edge Function을 배포한 다음, Edge runtime의 Google server key를 설정한다. 이후 실제 계정에서 검색·저장·동일 장소 재저장·수정/삭제·폴더 변경·재실행을 확인한다. 재실행 후 목록을 위한 Google Place 재확인과 지도 핀/지역 선택은 B08에서 연결한다.
+
+### 2026-09-10 — B09 Takeout 파일 선택과 목록 미리보기
+
+- 작업: B09 / R13, R15
+- 변경: 내 지도에서 `Google 저장목록 파일 가져오기` 흐름을 열고, Files/다운로드에서 Takeout CSV 하나 이상 또는 ZIP 하나를 직접 고르도록 연결했다. CSV는 알려진 헤더/행 파서로, ZIP은 중앙 디렉터리를 먼저 검사한 뒤 선택된 CSV만 스트리밍으로 풀어 파싱한다. ZIP의 25 MiB, 전체 해제 100 MiB, 1,000 파일, CSV 5 MiB, 미리보기 1,000행 한도를 적용하고, 암호화·중첩 archive·경로 탈출·symlink·지원하지 않는 압축 방식은 읽기 전에 거절한다. 파일은 아직 업로드·저장·장소 매칭하지 않고, 파일 수/장소 수/검토 필요 수와 일부 개인 미리보기만 보여 준다.
+- 실행: Expo DocumentPicker/FileSystem 현재 문서와 `fflate`의 streaming unzip API를 확인하고 `fflate@0.8.2`를 mobile workspace에 고정했다. 현재 터미널의 Node 26.4.0은 프로젝트 고정 Node 24.20.0과 달라 의존성 설치에서 engine check만 이번 설치에 한해 우회했다. 사용자 요청에 따라 lint/typecheck/unit·실기기 파일 선택은 실행하지 않았다.
+- 검증: 미실행이다. 따라서 실제 Takeout ZIP/CSV와 악성 archive, 다국어 파일명, iOS/Android Files picker, 대형 파일의 메모리 사용은 검증 완료가 아니다.
+- 정책/비용: 파일 원문과 파싱 결과를 Supabase/Google/외부 서비스에 보내지 않는다. Google 로그인으로 저장목록을 읽는다는 문구를 쓰지 않았고, Google 원래 목록을 변경하지 않는다.
+- 남은 것: 소유자가 동의·비식별화한 실제 Takeout fixture와 악성 ZIP fixture로 모바일에서 검증한다. B10에서 Place ID/이름+사용자 지역 후보 확인, 행별 제외, private batch 저장·멱등 재시도를 연결한다.
+
+### 2026-09-10 — B10 Takeout 후보 확인과 비공개 저장 흐름
+
+- 작업: B10 / R13, R15
+- 변경: 파일 미리보기 다음에 원본 행별 검토 화면을 연결했다. 사용자는 입력 이름으로 Places 후보를 다시 검색해 하나를 직접 선택하고, 지역은 선택적으로 고른 뒤에만 비공개 저장한다. 후보를 자동 확정하거나 Takeout 폴더명을 지역으로 추측하지 않는다. 행을 건너뛸 수 있고, 완료 화면에는 저장·기존 저장과 중복·건너뜀 결과를 분리해 보인다. 미리보기 모드에서는 예시 후보/지역과 화면 상태만 사용하며 서버에 저장하지 않는다. 실제 모드의 새 migration은 사용자+입력 digest의 7일 batch, 행 상태, 시작·목록·행 저장·건너뛰기·취소 제한 RPC를 추가했다. 기존 개인 메모는 변경하지 않고, Takeout 메모는 `imported_notes`에 누적하며 사용자가 선택한 지역만 `user_selected`로 연결한다.
+- 실행: `supabase migration new add_takeout_import_batches`로 migration 골격을 만들고 최신 Supabase 변경·Database Function/RLS 문서를 확인했다. 커밋 전 `npm run check`(lint·typecheck·domain 단위 테스트 10건·문서 검사)와 changed-scope React Doctor를 실행했다. `npm run test:db`는 로컬 DB가 없어 연결하지 못했고, `npm run supabase:start`는 Docker/Podman이 설치되지 않아 시작하지 못했다. Edge 배포, Expo 실행과 실제 Google Places 호출은 실행하지 않았다.
+- 검증: `npm run check`은 통과했다. React Doctor는 기존 장소 관리 화면의 누적 경고로 80/100을 보고했고, 이번 검토 화면에 새 항목은 보고하지 않았다. Docker 부재로 migration 문법/권한, private schema 직접 접근 차단, 두 계정 batch 소유 경계, ticket 만료·중복·재시도, 실제 지역 카탈로그와 iOS/Android의 검토 UI는 검증 완료가 아니다.
+- 정책/비용: 원본 ZIP/CSV는 서버에 보내거나 보관하지 않는다. 같은 파싱 입력을 식별하는 SHA-256 digest와 사용자가 저장·건너뛰기를 결정한 행의 정규화 입력만 private batch에 짧게 보관한다. mobile은 Google Places 키나 Place ID를 직접 다루지 않으며, 실제 후보 검색은 기존 인증 Edge Function의 짧은 수명 ticket만 사용한다. 실제 Supabase/Google 프로젝트·키·과금·배포에는 연결하거나 변경하지 않았다.
+- 남은 것: 로컬 DB에서 새 migration을 clean apply하고 두 계정 RLS/함수 권한, cancel·expiry·idempotency·기존 메모 보존을 SQL로 검증한다. 실제 Takeout fixture/기기 파일 선택과 Places 검색을 확인하고, 20행 단위의 처리 큐·Takeout 폴더 보존·명시 Place ID 경로는 후속 범위로 완성한다.
 
 ## 공식 근거
 
