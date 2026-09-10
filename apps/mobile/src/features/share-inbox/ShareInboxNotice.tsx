@@ -7,9 +7,10 @@ import { colors, radii, spacing, type } from '@/components/tokens';
 type ShareInboxNoticeProps = Readonly<{
   candidates: SharedPlaceInboxCandidate[];
   onDiscard: (payloadId: string) => void;
+  onReview: (candidate: SharedPlaceInboxCandidate) => void;
 }>;
 
-export function ShareInboxNotice({ candidates, onDiscard }: ShareInboxNoticeProps) {
+export function ShareInboxNotice({ candidates, onDiscard, onReview }: ShareInboxNoticeProps) {
   const { t } = useTranslation();
   const firstCandidate = candidates[0];
 
@@ -27,14 +28,24 @@ export function ShareInboxNotice({ candidates, onDiscard }: ShareInboxNoticeProp
           {firstCandidate.host}
         </Text>
       </View>
-      <Pressable
-        accessibilityHint={t('shareInbox.discardHint')}
-        accessibilityRole="button"
-        onPress={() => onDiscard(firstCandidate.payloadId)}
-        style={({ pressed }) => [styles.discardButton, pressed ? styles.discardButtonPressed : undefined]}
-      >
-        <Text style={styles.discardText}>{t('shareInbox.discard')}</Text>
-      </Pressable>
+      <View style={styles.actions}>
+        <Pressable
+          accessibilityHint={t('shareInbox.reviewHint')}
+          accessibilityRole="button"
+          onPress={() => onReview(firstCandidate)}
+          style={({ pressed }) => [styles.reviewButton, pressed ? styles.reviewButtonPressed : undefined]}
+        >
+          <Text style={styles.reviewText}>{t('shareInbox.review')}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityHint={t('shareInbox.discardHint')}
+          accessibilityRole="button"
+          onPress={() => onDiscard(firstCandidate.payloadId)}
+          style={({ pressed }) => [styles.discardButton, pressed ? styles.discardButtonPressed : undefined]}
+        >
+          <Text style={styles.discardText}>{t('shareInbox.discard')}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -49,6 +60,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
     padding: spacing.md,
+  },
+  actions: {
+    alignItems: 'flex-end',
+    gap: 6,
   },
   copy: {
     flex: 1,
@@ -95,6 +110,23 @@ const styles = StyleSheet.create({
   },
   discardText: {
     color: colors.ink,
+    fontFamily: type.utility,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  reviewButton: {
+    backgroundColor: colors.ink,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 9,
+  },
+  reviewButtonPressed: {
+    backgroundColor: colors.rule,
+  },
+  reviewText: {
+    color: colors.paper,
     fontFamily: type.utility,
     fontSize: 10,
     fontWeight: '700',

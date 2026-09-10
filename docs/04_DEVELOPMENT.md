@@ -214,7 +214,8 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | Google/Apple 인증·온보딩·세션 (B06) | PARTIAL | 제한 RPC와 모바일 인증 흐름을 작성했다. Supabase 프로젝트/provider·Apple 식별자 설정, 로컬 DB 적용, 실제 계정/재실행/로그아웃 교차 플랫폼 검증이 남았다. |
 | 장소 검색·비공개 저장 기반 (B07) | PARTIAL | 검색→확인→비공개 저장, 개인 폴더 생성/선택/이름변경/삭제, 개인 기록 수정/삭제 UI와 Edge/RPC source를 추가했다. DB 적용·Edge 배포·실계정 확인과 재실행 후 목록은 미실행이다. |
 | Takeout 파일 선택·검사·확인 저장 (B09, B10) | PARTIAL | CSV 단독/복수와 ZIP 안의 CSV를 기기에서 안전 한도 안에 검사·파싱하고, 각 행에서 후보·선택 지역을 확인한 뒤 private batch에 저장하는 흐름을 작성했다. 실제 Takeout fixture·악성 ZIP fixture·실기기 파일 선택·migration/RLS·실계정 저장 검증과 Takeout 폴더 보존은 남았다. |
-| 기능 구현 B08, B11~B16 | NOT_STARTED | 단계별 진행 |
+| Google Maps 단일 링크 붙여넣기·수신 inbox 확인 저장 (B11) | PARTIAL | 받은 링크 또는 수동 붙여넣기에서 서버가 검증 가능한 `query_place_id`만 Places Details로 확인해 후보를 만들고, 그 밖의 Google Maps 링크는 사용자가 직접 검색해 후보를 고른 뒤에만 private 저장한다. migration/RLS·Edge 배포·실계정과 iOS/Android 공유 수신은 미검증이다. |
+| 기능 구현 B08, B12~B16 | NOT_STARTED | 단계별 진행 |
 | 스토어 계정/인증서/도메인 | OWNER_SETUP_REQUIRED | 소유자 명의로 설정 |
 | 베타/심사/공개 출시 | NOT_STARTED | M6, 승인과 공개를 별도 기록 |
 
@@ -361,6 +362,17 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 정책/비용: 원본 ZIP/CSV는 서버에 보내거나 보관하지 않는다. 같은 파싱 입력을 식별하는 SHA-256 digest와 사용자가 저장·건너뛰기를 결정한 행의 정규화 입력만 private batch에 짧게 보관한다. mobile은 Google Places 키나 Place ID를 직접 다루지 않으며, 실제 후보 검색은 기존 인증 Edge Function의 짧은 수명 ticket만 사용한다. 실제 Supabase/Google 프로젝트·키·과금·배포에는 연결하거나 변경하지 않았다.
 - 남은 것: 로컬 DB에서 새 migration을 clean apply하고 두 계정 RLS/함수 권한, cancel·expiry·idempotency·기존 메모 보존을 SQL로 검증한다. 실제 Takeout fixture/기기 파일 선택과 Places 검색을 확인하고, 20행 단위의 처리 큐·Takeout 폴더 보존·명시 Place ID 경로는 후속 범위로 완성한다.
 
+### 2026-09-10 — B11 Google Maps 단일 링크 확인 저장
+
+- 작업: B11 / R14
+- 변경: 내 지도에서 Google Maps 링크를 직접 붙여넣고, 기존 Android/iOS 공유 inbox의 수신 링크는 `확인하기`로 이어지는 확인 화면을 추가했다. 링크는 절대 자동 저장하지 않으며, 확인된 후보와 주소를 사용자가 다시 선택한 뒤에만 내 지도에 비공개 저장한다. 저장을 마친 inbox 항목만 기기 inbox에서 제거하고, 닫기·뒤로 가기는 항목을 유지한다.
+- 서버 경계: `app` Edge Function은 인증된 요청에서만 HTTPS Google Maps 허용 host를 검증한다. 공식 Maps URL의 `query_place_id`가 있는 경우에만 Google Places Details (New)의 최소 필드로 재확인하고, 원본 링크 SHA-256과 함께 짧은 수명의 기존 저장 ticket을 발급한다. `cid`, 지도 좌표, HTML, redirect/단축 URL은 해석하지 않는다. 직접 확인할 수 없는 허용 링크는 장소명·지역 수동 검색으로 넘기되 같은 원본 링크 hash가 묶인 후보만 발급한다. mobile에는 Google API key나 Place ID를 노출하지 않는다.
+- 저장 경계: 새 `create_saved_from_google_link_ticket` 제한 RPC는 활성 사용자와 기존 ticket 소유·만료·단일 사용 검증을 재사용하고, ticket의 원본 링크 SHA-256이 일치할 때에만 새 개인 저장에 사용자 입력 원본 URL과 `google_link` provenance를 기록한다. 기본 공개 범위나 상대방 메모·방문 기록을 추가하지 않는다.
+- 실행: `supabase migration new add_google_link_place_save`로 migration 골격을 만들고, 현재 Supabase Edge Function 인증/secret 지침과 Google Maps URL·Places Details (New) 공식 문서를 확인했다. 사용자 요청에 따라 lint/typecheck/unit, Supabase local start/reset·migration apply, Edge deploy, Expo 실행과 실제 Google Places 호출은 실행하지 않았다.
+- 검증: 미실행이다. 따라서 migration 문법·함수 권한·두 계정 ticket 경계, URL host/Place ID 거절 규칙, ticket 만료·중복 저장, Edge 오류 처리, Android cold/warm share와 iOS Share Extension·App Group 수신, 로그아웃 상태/수신 후 재로그인 및 실제 private 저장은 검증 완료가 아니다.
+- 정책/비용: 외부 URL은 fetch하거나 redirect를 따르지 않는다. 실제 Google Places 요청은 소유자 설정 후 Edge runtime server key로만 나가며, 원본 링크는 private 저장의 사용자 입력으로만 보관한다. 실제 Supabase/Google 프로젝트·키·과금·배포에는 연결하거나 변경하지 않았다.
+- 남은 것: 로컬 DB에 새 migration을 clean apply하고 grant/RLS·계정/ticket 경계를 SQL로 검증한다. 소유자 승인 후 `app` Function 배포·secret 설정 후 실제 Place Details 응답과 링크별 fallback을 확인하고, Android/iOS 실기기에서 Google Maps 공유의 cold/warm start·중복·취소·저장 완료를 확인한다.
+
 ## 공식 근거
 
 [D1]: https://docs.expo.dev/more/create-expo/
@@ -369,3 +381,5 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 [D4]: https://docs.expo.dev/versions/latest/sdk/map-view/
 [D5]: https://developers.google.com/maps/documentation/places/web-service/text-search
 [D6]: https://supabase.com/docs/guides/functions/secrets
+[D7]: https://developers.google.com/maps/documentation/urls/get-started
+[D8]: https://developers.google.com/maps/documentation/places/web-service/place-details

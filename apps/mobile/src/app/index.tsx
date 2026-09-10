@@ -13,8 +13,10 @@ import { PlaceSearchSheet } from '@/features/places/PlaceSearchSheet';
 import { SavedPlaceSheet } from '@/features/places/SavedPlaceSheet';
 import type { PrivateCollection } from '@/features/places/collectionsApi';
 import type { SavedPlaceDraft } from '@/features/places/placeSearchApi';
+import { GoogleLinkSheet } from '@/features/share-inbox/GoogleLinkSheet';
 import { ShareInboxNotice } from '@/features/share-inbox/ShareInboxNotice';
 import { useShareInbox } from '@/features/share-inbox/useShareInbox';
+import type { SharedPlaceInboxCandidate } from '@live-to-eat/domain';
 import i18n from '@/lib/i18n';
 import { isAuthPreviewMode } from '@/lib/supabase/client';
 
@@ -47,6 +49,8 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
   const [isPlaceSearchVisible, setIsPlaceSearchVisible] = useState(false);
   const [isSavedPlacesVisible, setIsSavedPlacesVisible] = useState(false);
   const [isTakeoutImportVisible, setIsTakeoutImportVisible] = useState(false);
+  const [isGoogleLinkVisible, setIsGoogleLinkVisible] = useState(false);
+  const [sharedLinkCandidate, setSharedLinkCandidate] = useState<SharedPlaceInboxCandidate | null>(null);
   const [collections, setCollections] = useState<PrivateCollection[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlaceDraft[]>([]);
 
@@ -80,6 +84,21 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
     );
   }, []);
 
+  const closeGoogleLink = (): void => {
+    setIsGoogleLinkVisible(false);
+    setSharedLinkCandidate(null);
+  };
+
+  const openSharedLink = (candidate: SharedPlaceInboxCandidate): void => {
+    setSharedLinkCandidate(candidate);
+    setIsGoogleLinkVisible(true);
+  };
+
+  const saveGoogleLinkToMap = (savedPlace: SavedPlaceDraft): void => {
+    savePlaceToMap(savedPlace);
+    if (sharedLinkCandidate) shareInbox.discard(sharedLinkCandidate.payloadId);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.page}>
@@ -111,7 +130,11 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
         ) : null}
 
         {shareInbox.candidates.length > 0 ? (
-          <ShareInboxNotice candidates={shareInbox.candidates} onDiscard={shareInbox.discard} />
+          <ShareInboxNotice
+            candidates={shareInbox.candidates}
+            onDiscard={shareInbox.discard}
+            onReview={openSharedLink}
+          />
         ) : null}
 
         <MapCanvas />
@@ -160,6 +183,16 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
           >
             <Text style={styles.importTakeoutButtonText}>↓ {t('map.importTakeout')}</Text>
           </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setSharedLinkCandidate(null);
+              setIsGoogleLinkVisible(true);
+            }}
+            style={styles.importGoogleLinkButton}
+          >
+            <Text style={styles.importGoogleLinkButtonText}>↗ {t('map.importGoogleLink')}</Text>
+          </Pressable>
           <View style={styles.locationNote}>
             <View accessibilityElementsHidden style={styles.locationDot} />
             <Text style={styles.locationText}>{t('map.locationNote')}</Text>
@@ -186,6 +219,15 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
         ) : null}
         {isTakeoutImportVisible ? (
           <TakeoutImportSheet onDismiss={() => setIsTakeoutImportVisible(false)} visible />
+        ) : null}
+        {isGoogleLinkVisible ? (
+          <GoogleLinkSheet
+            inputUrl={sharedLinkCandidate?.row.inputUrl ?? ''}
+            onDismiss={closeGoogleLink}
+            onSaved={saveGoogleLinkToMap}
+            sourceHost={sharedLinkCandidate?.host}
+            visible
+          />
         ) : null}
       </View>
     </SafeAreaView>
@@ -316,6 +358,17 @@ const styles = StyleSheet.create({
     color: colors.paper,
     fontFamily: type.body,
     fontSize: 13,
+    fontWeight: '800',
+  },
+  importGoogleLinkButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+  },
+  importGoogleLinkButtonText: {
+    color: colors.panelMuted,
+    fontFamily: type.body,
+    fontSize: 12,
     fontWeight: '800',
   },
   emptyEyebrow: {
