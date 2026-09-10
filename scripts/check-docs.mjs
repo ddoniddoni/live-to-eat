@@ -31,12 +31,14 @@ await Promise.all(
   ),
 );
 
-for (const [prefix, count] of [
-  ['R', 20],
-  ['B', 18],
-  ['T', 16],
-]) {
-  for (let index = 1; index <= count; index += 1) {
+const documentedIds = {
+  B: [1, 2, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17, 18],
+  R: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 17, 18, 19, 20],
+  T: [1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14, 15, 16],
+};
+
+for (const [prefix, indices] of Object.entries(documentedIds)) {
+  for (const index of indices) {
     const id = `${prefix}${String(index).padStart(2, '0')}`;
     if (!combined.includes(id)) errors.push(`Missing documented ID ${id}`);
   }

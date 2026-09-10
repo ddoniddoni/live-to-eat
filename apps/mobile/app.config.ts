@@ -54,13 +54,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           androidGoogleMapsApiKey,
         },
       ],
-      [
-        './plugins/withShareInbox',
-        {
-          appGroupId: `group.${iosBundleIdentifier}`,
-          extensionBundleIdentifier: `${iosBundleIdentifier}.shareinbox`,
-        },
-      ],
     ],
     experiments: {
       typedRoutes: true,

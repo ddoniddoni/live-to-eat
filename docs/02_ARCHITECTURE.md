@@ -14,7 +14,7 @@
 | 장소 검색 | 서버 Google Places API (New) | 클라이언트의 임의 URL/FieldMask를 프록시하지 않는다. |
 | 백엔드 | Supabase Auth, PostgreSQL, PostGIS, Edge Functions | 소유 데이터에 RLS. 공개 열람은 제한된 서버 DTO. |
 | 데이터 요청 | TanStack Query + 런타임 검증 스키마 | 서버 상태와 화면 상태를 분리한다. Google 응답의 디스크 캐시는 금지한다. |
-| 로그인 | Google, Apple | 앱 로그인과 Google 데이터 이전 동의는 별도다. |
+| 로그인 | Google, Apple | 장소 검색과 로그인 권한을 분리한다. |
 | 민감 로컬 저장 | expo-secure-store 기반 세션 어댑터 | 토큰은 평문 AsyncStorage에 저장하지 않는다. |
 | 작은 공유 웹 | Vite + TypeScript, Google Maps JavaScript API | 공유/공개 지도 열람, 약관/문의/탈퇴 안내, 앱 연결만 제공한다. |
 | 웹 호스팅 | Firebase Hosting + 소유 도메인 | Auth/DB는 Supabase 유지. Firebase Dynamic Links는 사용하지 않는다. |
@@ -41,7 +41,7 @@ docs/                           # 이 패키지의 상세 MD 5개만 유지
 apps/
   mobile/
     src/app/                    # Expo Router 라우트
-    src/features/               # auth, maps, saved, discover, import, shares, settings
+    src/features/               # auth, maps, places, discover, shares, settings
     src/components/             # 공통 UI와 지도 어댑터
     src/lib/                    # supabase, secure storage, analytics, i18n
     locales/ko.json
@@ -62,8 +62,7 @@ supabase/
   functions/maintenance/        # 인증된 정리 작업
   tests/                        # 실제 PostgreSQL 권한/멱등성 테스트
   seed.sql                      # 합성 테스트 데이터, 실제 사용자 자료 금지
-plugins/                        # 지도/공유 확장 설정과 재현 가능한 네이티브 생성
-modules/share-inbox/            # iOS Share Extension + Android 수신 어댑터 필요 시
+plugins/                        # 지도 설정과 재현 가능한 네이티브 생성
 scripts/                        # 지역 적재, 데이터 검사, 운영 검증
 package.json
 package-lock.json
@@ -86,7 +85,7 @@ Apple은 iOS의 네이티브 Sign in with Apple을 사용한다. nonce 검증과
 - `getItem/setItem/removeItem`을 구현하고 로그아웃/탈퇴/계정 전환 시 토큰과 해당 계정 캐시를 지운다.
 - 큰 세션은 SecureStore 단일 값 제한에 걸릴 수 있다. UTF-8 크기로 나눈 generation 기반 chunk 저장, manifest 마지막 확정, 실패 시 이전 generation 유지, 오래된 chunk 제거를 테스트한다. 평문 저장으로 조용히 우회하지 않는다. [A6]
 - access/refresh token, OAuth code, PKCE verifier, 공유 secret을 분석/크래시 로그에 남기지 않는다.
-- 저장/가져오기 문맥은 앱 내부의 짧은 수명 pending action으로 보관한다. 로그인 callback query에 원본 공유 secret을 붙이지 않는다. 완료 후 현재 권한을 다시 확인하고 사용자에게 저장 확인을 받는다.
+- 저장 확인 문맥은 앱 내부의 짧은 수명 pending action으로 보관한다. 로그인 callback query에 원본 공유 secret을 붙이지 않는다. 완료 후 현재 권한을 다시 확인하고 사용자에게 저장 확인을 받는다.
 - 활성 계정 상태를 DB에서도 검사한다. 오래된 JWT가 남아 있어도 정지/탈퇴 사용자가 읽기/쓰기를 계속할 수 없게 한다.
 
 민감 작업은 단순 토큰 refresh를 최근 재인증으로 간주하지 않는다. 탈퇴는 fresh provider 로그인/일회성 challenge로 동일 계정과 목적을 서버가 확인한다. Apple authorization code에서 철회용 토큰을 얻어야 하는 단계와 Supabase 세션 교환을 구분하고, 이 처리의 실패를 별도 기록한다. [A4][A13]
@@ -102,8 +101,8 @@ UUID를 내부 키로 쓴다. 외부 Place ID는 opaque text다. 시각은 UTC `
 | `user_settings` | user_id, terms_version, privacy_notice_version, age_gate_version, age_confirmed, analytics_opt_in=false. 고지/동의 근거를 구분한다. |
 | `place_refs` | id, provider='google', provider_place_id UNIQUE, replacement_ref_id NULL, id_checked_at. Google 장소명/주소/평점을 영구 컬럼으로 넣지 않는다. |
 | `saved_places` | id, user_id, place_ref_id NULL, resolution_state resolved/unresolved, visibility private/unlisted/public, visit_status want/visited, is_recommended, public_note, exposure_epoch, version, created_at. resolved일 때 user_id+place_ref_id UNIQUE. |
-| `saved_private` | saved_id PK/FK CASCADE, personal_note, tags, visited_on, user_label, input_provenance, original_url, imported_notes. 소유자 전용. |
-| `collections` | id, user_id, name, origin manual/takeout, import_source_key. P0는 개인 폴더이며 공개범위 상속 없음. |
+| `saved_private` | saved_id PK/FK CASCADE, personal_note, tags, visited_on, user_label, input_provenance. 소유자 전용. |
+| `collections` | id, user_id, name, origin manual. P0는 개인 폴더이며 공개범위 상속 없음. |
 | `collection_items` | collection_id, saved_id 복합 PK. 두 레코드의 소유자가 같아야 한다. |
 | `region_nodes` | id, country_code, parent_id, kind, source_key/source_id, localized_names, source_version. 가변 깊이/순환 금지. |
 | `region_closure` | ancestor_id, descendant_id, depth. 자신 포함. 하위 지역 검색에 사용. |
@@ -111,15 +110,13 @@ UUID를 내부 키로 쓴다. 외부 Place ID는 opaque text다. 시각은 UTC `
 | `private.google_location_cache` | place_ref_id PK, location geography(Point,4326), fetched_at, expires_at. 정책/백업 조건 충족 전 비활성. 03의 저장 정책 적용. |
 | `private.shares` | id, owner_id, token_hash, selected_region_id NULL, expires_at, revoked_at, created_at. 원문 secret 저장 금지. |
 | `private.share_items` | share_id, saved_id, granted_epoch, removed_at. 생성 시 선택된 저장만 보관. |
-| `private.import_batches` | id, user_id, input_digest, source_kind, parser_version, state, counters, expires_at. 원본 ZIP 저장하지 않음. |
-| `private.import_rows` | batch_id, source_row_key, normalized_input, selected_place_ref_id, state, result_saved_id, error_code. batch+row UNIQUE. |
 | `private.blocks/reports` | 차단 쌍 UNIQUE, 신고 대상/사유/상태. 신고자 정보와 운영자 메모는 비공개. |
 | `private.admin_memberships/audit_events` | 운영 권한과 조치 기록. user_metadata의 role을 신뢰하지 않는다. |
 | `private.request_keys/rate_limits/deletion_jobs` | 요청 멱등성, 비용/호출 제한, 계정 삭제 진행 상태. client가 직접 수정 불가. |
 
-핵심 인덱스: saved_places(user_id, created_at, id), 공개 탐색 대상(user_id, visibility), saved_regions(region_id, saved_id), collection_items(saved_id), share_items(share_id, saved_id), import_batches(user_id, state), 위치 캐시의 GiST. 전체 텍스트 Google 장소 검색 인덱스는 만들지 않는다.
+핵심 인덱스: saved_places(user_id, created_at, id), 공개 탐색 대상(user_id, visibility), saved_regions(region_id, saved_id), collection_items(saved_id), share_items(share_id, saved_id), 위치 캐시의 GiST. 전체 텍스트 Google 장소 검색 인덱스는 만들지 않는다.
 
-unresolved 저장은 개인 목록에서 유지할 수 있지만 public/unlisted로 바꿀 수 없다. 가져오기 원문 정리 후에도 사용자가 확정한 미해결 개인 기록과 자기 메모는 보존한다. 가짜 좌표/Place ID를 채우지 않는다. 장소가 병합되면 같은 사용자의 두 저장을 중복 처리하되 메모를 삭제하지 않고 충돌 검토 대상으로 둔다.
+unresolved 저장은 개인 목록에서 유지할 수 있지만 public/unlisted로 바꿀 수 없다. 사용자가 작성한 미해결 개인 기록과 자기 메모는 보존한다. 가짜 좌표/Place ID를 채우지 않는다. 장소가 병합되면 같은 사용자의 두 저장을 중복 처리하되 메모를 삭제하지 않고 충돌 검토 대상으로 둔다.
 
 원본 작성자가 탈퇴해도 다른 사람의 독립 저장/공통 Place ID를 삭제하지 않는다. 원본 사용자 참조만 제거한다. 폴더/장소 변경에는 FK 소유권 검사와 트랜잭션을 적용한다.
 
@@ -162,11 +159,6 @@ security definer RPC는 `SET search_path=''`, 완전 수식 테이블명, 기본
 | `POST /shares` | savedIds<=200, regionId?, expiresAt, 공개범위 변경 확인, key | id와 secret을 최초 1회 반환 |
 | `POST /shares/read` | shareId, secret, cursor? | 현재 허용된 공유 DTO. no-store. secret 없는 ID 조회 불가 |
 | `POST /shares/:id/revoke` | key | 소유자 확인, 즉시 철회 |
-| `POST /imports` | sourceKind, inputDigest, selectedRowCount | batchId, 한도. 원본 ZIP은 받지 않음 |
-| `POST /imports/:id/rows` | 검증된 정규화 행<=50 | 소유자/크기 재검증. 원문은 private |
-| `POST /imports/:id/resolve` | rowIds<=20, explicitRegionHint? | 후보/미해결. 자동 오확정 금지 |
-| `POST /imports/:id/commit` | readyRowIds<=20, idempotencyKey | saved/duplicate/failed 행별 결과 |
-| `POST /imports/:id/cancel` | key | 미완료 작업만 취소, 이미 저장된 내 기록 유지 |
 | `POST /account/export` | format, includeNotes, recentAuthProof | 내 데이터 파일/안전한 응답, 재배포 제한 필드 제외 |
 | `POST /reports`, `/blocks` | 접근 가능한 target와 사유 | 제한된 접수 결과. 차단은 인증 필요 |
 | `POST /account/delete` | recentAuthProof, confirmation | deleting으로 전환, 공개 차단, 삭제 jobId |
@@ -174,12 +166,12 @@ security definer RPC는 `SET search_path=''`, 완전 수식 테이블명, 기본
 대표 오류 형식:
 
 ```json
-{"error":{"code":"IMPORT_NEEDS_REVIEW","messageKey":"import.needsReview","retryable":false},"requestId":"opaque-id"}
+{"error":{"code":"PLACE_UNRESOLVED","messageKey":"place.unresolved","retryable":false},"requestId":"opaque-id"}
 ```
 
-공통 코드: UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, VERSION_CONFLICT, INVALID_INPUT, RATE_LIMITED, IMPORT_UNSUPPORTED, PLACE_UNRESOLVED, PROVIDER_UNAVAILABLE, COST_LIMIT_REACHED. 오류에 개인 메모/토큰/파일 경로/Google 응답 원문을 넣지 않는다. 메시지는 클라이언트 번역 키로 표시한다.
+공통 코드: UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, VERSION_CONFLICT, INVALID_INPUT, RATE_LIMITED, PLACE_UNRESOLVED, PROVIDER_UNAVAILABLE, COST_LIMIT_REACHED. 오류에 개인 메모/토큰/Google 응답 원문을 넣지 않는다. 메시지는 클라이언트 번역 키로 표시한다.
 
-saved/create 및 import commit은 중복키+DB UNIQUE로 보장한다. `select 후 insert`만으로 중복을 막지 않는다. 동일 멱등키에 다른 payload는 409, 중복 요청은 같은 결과. 단순 클라이언트 메모리 상태로 성공을 판단하지 않는다.
+saved/create는 중복키+DB UNIQUE로 보장한다. `select 후 insert`만으로 중복을 막지 않는다. 동일 멱등키에 다른 payload는 409, 중복 요청은 같은 결과. 단순 클라이언트 메모리 상태로 성공을 판단하지 않는다.
 
 ## 7. 공유 링크와 작은 웹
 
@@ -202,17 +194,7 @@ Google SDK 자체 지도 저작자 표시를 가리지 않는다. 목록으로�
 
 설치된 앱은 Universal Links/App Links로 해당 지도를 연다. 미설치는 웹으로 열린다. 설치 이후 원래 화면이 자동 복원되는 deferred deep linking까지 보장하지 않는다. 설치 후 원본 링크 다시 열기/직접 링크 붙여넣기를 제공한다. Firebase Dynamic Links는 종료된 제품이므로 사용하지 않는다. [A10]
 
-## 8. 공유 수신 구현 결정
-
-외부 Google 장소 링크 한 개를 `공유 → 앱`으로 받는다. 모든 Google 개인 목록을 동기화하는 기능이 아니다.
-
-Android는 text/plain ACTION_SEND와 표준 intent를 사용한다. iOS는 정상 Share Extension의 ViewController에서 링크를 App Group의 작은 inbox에 기록하고 `저장됨, 앱에서 확인`으로 종료한다. 본 앱 실행 시 inbox를 가져와 후보 확인으로 연결한다. 로그인 토큰과 원본 Takeout를 확장에 공유하지 않는다.
-
-Expo 공식 incoming sharing은 조사 시 experimental이며 iOS에서 메인 앱을 여는 방식에 대해 Apple의 공식 지원이 없다는 경고가 있다. **P0 iOS 배포에는 이 자동 메인앱 실행 방식을 채택하지 않는다.** CNG config plugin + 작은 Swift 확장/브리지로 재현하고 M0/M4에서 실기기 검증한다. 파일 내보내기는 안정된 expo-sharing 기능을 쓸 수 있다. [A11]
-
-공유 inbox는 payload ID로 중복을 제거하며 완료/취소 시 지운다. 계정 전환 후 이전 사용자의 메모로 오인하지 않는다. 미확인 링크는 7일 이내 정리한다. 붙여넣기는 항상 동일 파이프라인의 대체 입력으로 제공한다.
-
-## 9. 운영 보안 기본값
+## 8. 운영 보안 기본값
 
 Google 서버 API 키, Supabase service role/secret, Apple .p8와 OAuth secret은 서버 비밀 저장소에만 둔다. 공개 모바일 API 키도 앱 식별자와 허용 API로 제한한다. 키 역할을 하나로 합치지 않는다. [A12]
 
@@ -234,7 +216,6 @@ Google 서버 API 키, Supabase service role/secret, Apple .p8와 OAuth secret�
 [A8]: https://docs.expo.dev/linking/overview/
 [A9]: https://firebase.google.com/docs/hosting/full-config
 [A10]: https://firebase.google.com/support/dynamic-links-faq
-[A11]: https://docs.expo.dev/versions/latest/sdk/sharing/
 [A12]: https://developers.google.com/maps/api-security-best-practices
 [A13]: https://developer.apple.com/support/offering-account-deletion-in-your-app/
 [A14]: https://supabase.com/docs/guides/functions/auth

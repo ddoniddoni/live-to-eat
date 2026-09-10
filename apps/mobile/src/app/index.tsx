@@ -7,16 +7,11 @@ import { colors, radii, spacing, type } from '@/components/tokens';
 import { AuthGate } from '@/features/auth/AuthGate';
 import type { SupportedLocale } from '@/features/auth/authApi';
 import { useAuthSession } from '@/features/auth/useAuthSession';
-import { TakeoutImportSheet } from '@/features/import/TakeoutImportSheet';
 import { MapCanvas } from '@/features/maps/MapCanvas';
 import { PlaceSearchSheet } from '@/features/places/PlaceSearchSheet';
 import { SavedPlaceSheet } from '@/features/places/SavedPlaceSheet';
 import type { PrivateCollection } from '@/features/places/collectionsApi';
 import type { SavedPlaceDraft } from '@/features/places/placeSearchApi';
-import { GoogleLinkSheet } from '@/features/share-inbox/GoogleLinkSheet';
-import { ShareInboxNotice } from '@/features/share-inbox/ShareInboxNotice';
-import { useShareInbox } from '@/features/share-inbox/useShareInbox';
-import type { SharedPlaceInboxCandidate } from '@live-to-eat/domain';
 import i18n from '@/lib/i18n';
 import { isAuthPreviewMode } from '@/lib/supabase/client';
 
@@ -45,12 +40,8 @@ type MyMapScreenProps = {
 
 function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
   const { t } = useTranslation();
-  const shareInbox = useShareInbox();
   const [isPlaceSearchVisible, setIsPlaceSearchVisible] = useState(false);
   const [isSavedPlacesVisible, setIsSavedPlacesVisible] = useState(false);
-  const [isTakeoutImportVisible, setIsTakeoutImportVisible] = useState(false);
-  const [isGoogleLinkVisible, setIsGoogleLinkVisible] = useState(false);
-  const [sharedLinkCandidate, setSharedLinkCandidate] = useState<SharedPlaceInboxCandidate | null>(null);
   const [collections, setCollections] = useState<PrivateCollection[]>([]);
   const [savedPlaces, setSavedPlaces] = useState<SavedPlaceDraft[]>([]);
 
@@ -84,21 +75,6 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
     );
   }, []);
 
-  const closeGoogleLink = (): void => {
-    setIsGoogleLinkVisible(false);
-    setSharedLinkCandidate(null);
-  };
-
-  const openSharedLink = (candidate: SharedPlaceInboxCandidate): void => {
-    setSharedLinkCandidate(candidate);
-    setIsGoogleLinkVisible(true);
-  };
-
-  const saveGoogleLinkToMap = (savedPlace: SavedPlaceDraft): void => {
-    savePlaceToMap(savedPlace);
-    if (sharedLinkCandidate) shareInbox.discard(sharedLinkCandidate.payloadId);
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.page}>
@@ -127,14 +103,6 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
           <View accessibilityRole="alert" style={styles.previewNotice}>
             <Text style={styles.previewNoticeText}>{t('map.previewNotice')}</Text>
           </View>
-        ) : null}
-
-        {shareInbox.candidates.length > 0 ? (
-          <ShareInboxNotice
-            candidates={shareInbox.candidates}
-            onDiscard={shareInbox.discard}
-            onReview={openSharedLink}
-          />
         ) : null}
 
         <MapCanvas />
@@ -176,23 +144,6 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
           >
             <Text style={styles.addPlaceButtonText}>+ {t('map.addPlace')}</Text>
           </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setIsTakeoutImportVisible(true)}
-            style={styles.importTakeoutButton}
-          >
-            <Text style={styles.importTakeoutButtonText}>↓ {t('map.importTakeout')}</Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setSharedLinkCandidate(null);
-              setIsGoogleLinkVisible(true);
-            }}
-            style={styles.importGoogleLinkButton}
-          >
-            <Text style={styles.importGoogleLinkButtonText}>↗ {t('map.importGoogleLink')}</Text>
-          </Pressable>
           <View style={styles.locationNote}>
             <View accessibilityElementsHidden style={styles.locationDot} />
             <Text style={styles.locationText}>{t('map.locationNote')}</Text>
@@ -214,18 +165,6 @@ function MyMapScreen({ isPreview = false, onSignOut }: MyMapScreenProps) {
             onDismiss={() => setIsSavedPlacesVisible(false)}
             onUpdate={updatePlaceOnMap}
             savedPlaces={savedPlaces}
-            visible
-          />
-        ) : null}
-        {isTakeoutImportVisible ? (
-          <TakeoutImportSheet onDismiss={() => setIsTakeoutImportVisible(false)} visible />
-        ) : null}
-        {isGoogleLinkVisible ? (
-          <GoogleLinkSheet
-            inputUrl={sharedLinkCandidate?.row.inputUrl ?? ''}
-            onDismiss={closeGoogleLink}
-            onSaved={saveGoogleLinkToMap}
-            sourceHost={sharedLinkCandidate?.host}
             visible
           />
         ) : null}
@@ -344,32 +283,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.panel,
     gap: 6,
     padding: spacing.lg,
-  },
-  importTakeoutButton: {
-    alignSelf: 'flex-start',
-    borderColor: '#657078',
-    borderRadius: radii.pill,
-    borderWidth: StyleSheet.hairlineWidth,
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 9,
-  },
-  importTakeoutButtonText: {
-    color: colors.paper,
-    fontFamily: type.body,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  importGoogleLinkButton: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-  },
-  importGoogleLinkButtonText: {
-    color: colors.panelMuted,
-    fontFamily: type.body,
-    fontSize: 12,
-    fontWeight: '800',
   },
   emptyEyebrow: {
     color: colors.wasabi,
