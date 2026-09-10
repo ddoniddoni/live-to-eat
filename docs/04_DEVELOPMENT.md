@@ -212,7 +212,8 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 공유 링크 수신 inbox (B04) | PARTIAL | Android `ACTION_SEND` 수신 Activity와 7일·20개 한도 inbox는 debug APK까지 컴파일. iOS Share Extension/App Group CNG 생성과 모듈 autolinking은 확인했으나 Xcode·실기기 빌드는 BLOCKED |
 | Supabase migration/RLS (B05) | PARTIAL | 계정 상태·개인 저장·국제 지역 카탈로그의 migration/RLS/제한 상태 RPC를 작성했다. 로컬 DB 적용과 두 계정 RLS SQL 검증은 사용자 요청에 따라 미실행 |
 | Google/Apple 인증·온보딩·세션 (B06) | PARTIAL | 제한 RPC와 모바일 인증 흐름을 작성했다. Supabase 프로젝트/provider·Apple 식별자 설정, 로컬 DB 적용, 실제 계정/재실행/로그아웃 교차 플랫폼 검증이 남았다. |
-| 기능 구현 B07~B16 | NOT_STARTED | 단계별 진행 |
+| 장소 검색·비공개 저장 기반 (B07) | PARTIAL | 검색→확인→비공개 저장, 개인 폴더 생성/선택/이름변경/삭제, 개인 기록 수정/삭제 UI와 Edge/RPC source를 추가했다. DB 적용·Edge 배포·실계정 확인과 재실행 후 목록은 미실행이다. |
+| 기능 구현 B08~B16 | NOT_STARTED | 단계별 진행 |
 | 스토어 계정/인증서/도메인 | OWNER_SETUP_REQUIRED | 소유자 명의로 설정 |
 | 베타/심사/공개 출시 | NOT_STARTED | M6, 승인과 공개를 별도 기록 |
 
@@ -236,6 +237,9 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 | 2026-09-09 | B05의 직접 Data API 쓰기는 차단 | 이후 B06/B07의 검증된 Edge/RPC만 프로필·저장·폴더를 변경하며, 현재는 활성 소유자의 읽기만 허용 |
 | 2026-09-09 | 루트 README를 제품 소개와 문서 진입점으로 유지 | 실행 명령 중심이 아닌 제품 이해를 위한 첫 화면 제공 |
 | 2026-09-10 | B06의 계정 초기화·온보딩은 공개 schema의 제한 RPC로만 허용 | 직접 Data API 쓰기 권한을 유지하지 않고, 인증된 사용자가 자기 `auth.uid()`에 대해서만 onboarding→active 전환하도록 한다. |
+| 2026-09-10 | 인증 UI 확인은 명시적 local preview flag로만 우회 | `EXPO_PUBLIC_AUTH_PREVIEW=true`일 때는 Supabase client·session refresh·OAuth·Data API를 호출하지 않고, 공유/릴리스 빌드에서는 반드시 `false`로 둔다. |
+| 2026-09-10 | 첫 실행 UI 언어는 한국어 | 인증 전·미리보기의 기본 `lng`는 `ko`로 두되, 활성 계정의 온보딩 언어 선택은 계속 우선한다. |
+| 2026-09-10 | Places 검색 결과는 짧은 수명의 서버 발급 ticket으로만 저장 전환 | 모바일은 Google Places 키·Place ID를 직접 다루지 않고, 검색 표시용 Google 콘텐츠는 저장하지 않는다. 해당 ticket은 활성 소유자의 한 번의 비공개 저장에만 사용한다. |
 
 ## 10. 문서 패키지 QA
 
@@ -326,7 +330,17 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 - 실행: `supabase migration new add_account_bootstrap_and_onboarding`으로 migration 골격을 만들고 Supabase/Expo의 현재 인증·딥링크·Apple·SecureStore 공식 문서를 확인했다. 사용자 요청에 따라 lint/typecheck/unit, Supabase local start/reset·migration apply, Expo prebuild/build, 실제 provider 로그인은 실행하지 않았다.
 - 검증: 미실행이다. 따라서 migration 적용, 핸들 중복/계정 상태/RLS, 앱 재실행 후 세션 복구·로그아웃, iOS/Android의 Google/Apple 로그인은 검증 완료가 아니다.
 - 정책/비용: 실제 Supabase 프로젝트, OAuth client, Apple Developer entitlement/Services ID, Google/Apple provider 설정, 외부 계정·과금·키에는 연결하거나 변경하지 않았다. 공개 publishable key만 앱 설정에 사용하며 OAuth code, PKCE verifier, access/refresh token은 로그 또는 화면에 출력하지 않는다. Google 로그인은 Google Maps 저장목록 읽기 권한과 분리한다.
+- UI 확인: `EXPO_PUBLIC_AUTH_PREVIEW=true`이면 인증 게이트만 명시적으로 우회하고 지도 내부 UI를 연다. 이 모드에서는 Supabase client·세션 갱신·OAuth·Data API를 호출하지 않으며, 화면에 미리보기 상태를 표시한다. 공유/릴리스 빌드에서는 `false`를 유지한다.
 - 남은 것: 소유자가 개발 Supabase 프로젝트에 `live-to-eat-dev://auth/callback`을 정확히 allowlist하고 URL/publishable key, Google provider client 설정, Apple native bundle ID·Services ID/provider 설정을 완료해야 한다. `ios.usesAppleSignIn` 추가 후 새 iOS development build가 필요하다. 공개 이용약관·개인정보 안내와 실제 버전을 확정해 development consent 값을 교체하고, 계정 복구/검증된 provider 연결·마지막 provider 해제 방지·탈퇴/Apple 철회는 B15에서 구현한다.
+
+### 2026-09-10 — B07 장소 검색·비공개 저장 기반
+
+- 작업: B07 / R01, R02, R03, R15
+- 변경: 모바일에 장소명/지역 검색 → 결과 확인 → 방문 상태·개인 메모·태그 확인 → 비공개 저장 화면을 추가했다. 저장 시 개인 폴더를 만들거나 선택할 수 있고, 폴더 이름 변경·삭제와 저장 기록의 방문 상태·추천·메모·태그 수정 및 삭제 UI를 추가했다. 폴더 삭제는 장소 기록을 삭제하지 않고 폴더 연결만 제거한다. `EXPO_PUBLIC_AUTH_PREVIEW=true`일 때에는 실제 Google 데이터가 아님을 표시한 로컬 예시 결과만 보여 주고, 저장도 기기 화면 상태에서만 보인다. 기본 앱 언어는 한국어로 고정했고, 활성 계정의 프로필 언어 선택은 계속 적용한다. Supabase에는 Place ID만 참조로 upsert하는 저장 RPC, 개인 폴더 생성·이름변경·삭제 RPC, 저장 수정·삭제 RPC, 단기 검색 ticket·분당 검색 횟수 테이블을 추가했다. Edge Function은 인증된 호출만 받아 Google Places API (New)의 최소 필드로 검색하고, 서버 secret을 통해 short-lived ticket을 발급하도록 작성했다.
+- 실행: `supabase migration new add_place_search_and_saved_place_rpcs`로 migration 골격을 만들고, 현재 Supabase Edge secret 형식 및 Google Places Text Search API의 필수 FieldMask 요구를 확인했다. [D5][D6] 사용자 요청에 따라 lint/typecheck/unit, Supabase local start/reset·migration apply, Edge deploy, Expo 실행과 실제 Google Places 호출은 실행하지 않았다.
+- 검증: 미실행이다. 따라서 migration/RLS/RPC 권한, ticket 만료·중복 저장·분당 제한, Edge의 Google 오류 처리, 저장·수정·삭제 및 폴더 변경의 소유자 경계, 로그인한 계정의 재실행 후 목록 복구는 검증 완료가 아니다.
+- 정책/비용: `GOOGLE_PLACES_SERVER_KEY`와 Supabase secret/service key는 Edge runtime secret으로만 설정해야 하며 mobile env·로그·화면에 넣지 않는다. Google의 장소명·주소는 검색·확인 화면에서만 사용하고 DB에는 Place ID 및 사용자의 private 입력만 저장한다. 실제 Supabase/Google 프로젝트, 키, 과금, Edge 배포에는 연결하거나 변경하지 않았다.
+- 남은 것: 소유자 승인 후 개발 Supabase DB에 migration을 적용하고 `app` Edge Function을 배포한 다음, Edge runtime의 Google server key를 설정한다. 이후 실제 계정에서 검색·저장·동일 장소 재저장·수정/삭제·폴더 변경·재실행을 확인한다. 재실행 후 목록을 위한 Google Place 재확인과 지도 핀/지역 선택은 B08에서 연결한다.
 
 ## 공식 근거
 
@@ -334,3 +348,5 @@ Takeout 파서, 다국어/지역 구조, iOS의 정상 공유 확장을 검증�
 [D2]: https://docs.expo.dev/guides/environment-variables/
 [D3]: https://developers.google.com/maps/api-security-best-practices
 [D4]: https://docs.expo.dev/versions/latest/sdk/map-view/
+[D5]: https://developers.google.com/maps/documentation/places/web-service/text-search
+[D6]: https://supabase.com/docs/guides/functions/secrets
