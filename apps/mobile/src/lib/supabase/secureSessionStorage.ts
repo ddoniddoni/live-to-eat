@@ -21,8 +21,10 @@ const isSessionManifest = (value: unknown): value is SessionManifest => {
     manifest.version === 1 &&
     typeof manifest.generation === 'string' &&
     manifest.generation.length > 0 &&
+    typeof manifest.chunkCount === 'number' &&
     Number.isInteger(manifest.chunkCount) &&
     manifest.chunkCount > 0 &&
+    typeof manifest.byteLength === 'number' &&
     Number.isInteger(manifest.byteLength) &&
     manifest.byteLength >= 0
   );

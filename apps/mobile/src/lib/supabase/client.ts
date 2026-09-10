@@ -6,6 +6,7 @@ import { AppState } from 'react-native';
 import { secureSessionStorage } from '@/lib/supabase/secureSessionStorage';
 
 const sessionStorageKey = 'live-to-eat.auth.session.v1';
+const authPreviewMode = process.env.EXPO_PUBLIC_AUTH_PREVIEW === 'true';
 
 const readPublicConfiguration = (): { key: string; url: string } | null => {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
@@ -21,6 +22,7 @@ const publicConfiguration = readPublicConfiguration();
 let client: SupabaseClient | null = null;
 
 export const isSupabaseConfigured = (): boolean => publicConfiguration !== null;
+export const isAuthPreviewMode = (): boolean => authPreviewMode;
 
 export const getSupabaseClient = (): SupabaseClient | null => {
   if (!publicConfiguration) return null;
@@ -42,6 +44,8 @@ export const getSupabaseClient = (): SupabaseClient | null => {
 };
 
 export const configureSupabaseAutoRefresh = (): (() => void) => {
+  if (isAuthPreviewMode()) return () => undefined;
+
   const supabase = getSupabaseClient();
   if (!supabase) return () => undefined;
 

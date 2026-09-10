@@ -15,7 +15,12 @@ import {
   signInWithGoogle,
   signInWithNativeApple,
 } from '@/features/auth/authProviders';
-import { clearSupabaseSession, getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase/client';
+import {
+  clearSupabaseSession,
+  getSupabaseClient,
+  isAuthPreviewMode,
+  isSupabaseConfigured,
+} from '@/lib/supabase/client';
 
 type AuthStatus =
   | 'account-blocked'
@@ -45,7 +50,7 @@ export type AuthSessionController = AuthSessionState & {
 const initialState = (): AuthSessionState => ({
   error: null,
   locale: null,
-  status: isSupabaseConfigured() ? 'loading' : 'configuration-required',
+  status: isAuthPreviewMode() ? 'active' : isSupabaseConfigured() ? 'loading' : 'configuration-required',
 });
 
 const stateForAccount = async (accountState: AccountState): Promise<AuthSessionState> => {
@@ -71,13 +76,16 @@ export const useAuthSession = (): AuthSessionController => {
     const currentRevision = revision.current + 1;
     revision.current = currentRevision;
 
+    if (isAuthPreviewMode()) {
+      if (mounted.current) setState({ error: null, locale: null, status: 'active' });
+      return;
+    }
+
     const supabase = getSupabaseClient();
     if (!supabase) {
       if (mounted.current) setState({ error: 'CONFIGURATION_REQUIRED', locale: null, status: 'configuration-required' });
       return;
     }
-
-    if (mounted.current) setState({ error: null, locale: null, status: 'loading' });
 
     try {
       const {
@@ -100,6 +108,10 @@ export const useAuthSession = (): AuthSessionController => {
 
   useEffect(() => {
     mounted.current = true;
+    if (isAuthPreviewMode()) return () => {
+      mounted.current = false;
+    };
+
     const supabase = getSupabaseClient();
     if (!supabase) return () => {
       mounted.current = false;
@@ -110,7 +122,7 @@ export const useAuthSession = (): AuthSessionController => {
     } = supabase.auth.onAuthStateChange(() => {
       void refresh();
     });
-    void refresh();
+    void Promise.resolve().then(refresh);
 
     return () => {
       mounted.current = false;

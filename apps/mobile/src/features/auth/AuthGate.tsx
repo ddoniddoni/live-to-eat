@@ -193,7 +193,7 @@ const OnboardingScreen = ({ auth, onChangeLanguage }: AuthGateProps) => {
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>{t('auth.language')}</Text>
           <View style={styles.languageRow}>
-            {(['en', 'ko'] as const).map((option) => {
+            {(['ko', 'en'] as const).map((option) => {
               const selected = locale === option;
               return (
                 <Pressable
