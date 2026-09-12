@@ -18,7 +18,11 @@
       "distribution": "store",
       "autoIncrement": true,
       "channel": "production",
-      "environment": "production"
+      "environment": "production",
+      "env": {
+        "APP_VARIANT": "production",
+        "EXPO_PUBLIC_AUTH_PREVIEW": "false"
+      }
     }
   },
   "submit": {

@@ -21,9 +21,10 @@
     "test:e2e": "npm run test:e2e --workspace=@live-to-eat/mobile",
     "build:share": "npm run build --workspace=@live-to-eat/share",
     "check:docs": "node scripts/check-docs.mjs",
-    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run check:docs",
+    "check": "npm run lint && npm run typecheck && npm run test:unit && npm run check:docs && npm run check:locales",
     "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop"
+    "supabase:stop": "supabase stop",
+    "check:locales": "node scripts/check-locales.mjs"
   },
   "devDependencies": {
     "eas-cli": "23.2.0",

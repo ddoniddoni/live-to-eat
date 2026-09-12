@@ -16,9 +16,11 @@ import {
   deleteSavedPlace,
   updateSavedPlace,
 } from '@/features/places/placeSearchApi';
+import { setSavedPlaceVisibility } from '@/features/discover/publicMapApi';
 import { PlaceSheetLayout } from '@/features/places/PlaceSheetLayout';
 
 type SavedPlaceSheetProps = {
+  initialSavedId?: string | null;
   onDelete: (savedId: string) => void;
   onDismiss: () => void;
   onUpdate: (savedPlace: SavedPlaceDraft) => void;
@@ -29,13 +31,26 @@ type SavedPlaceSheetProps = {
 const parseTags = (value: string): string[] =>
   [...new Set(value.split(',').map((tag) => tag.trim()).filter((tag) => tag.length > 0))].slice(0, 20);
 
-export function SavedPlaceSheet({ onDelete, onDismiss, onUpdate, savedPlaces, visible }: SavedPlaceSheetProps) {
+export function SavedPlaceSheet(props: SavedPlaceSheetProps) {
+  if (!props.visible) return null;
+  return <SavedPlaceSheetContent key={props.initialSavedId ?? "list"} {...props} />;
+}
+
+function SavedPlaceSheetContent({
+  initialSavedId = null,
+  onDelete,
+  onDismiss,
+  onUpdate,
+  savedPlaces,
+  visible,
+}: SavedPlaceSheetProps) {
   const { t } = useTranslation();
-  const [selected, setSelected] = useState<SavedPlaceDraft | null>(null);
-  const [note, setNote] = useState('');
-  const [tags, setTags] = useState('');
-  const [visitStatus, setVisitStatus] = useState<'visited' | 'want'>('want');
-  const [isRecommended, setIsRecommended] = useState(false);
+  const initialPlace = savedPlaces.find(place => place.savedId === initialSavedId) ?? null;
+  const [selected, setSelected] = useState<SavedPlaceDraft | null>(initialPlace);
+  const [note, setNote] = useState(initialPlace?.note ?? '');
+  const [tags, setTags] = useState(() => initialPlace?.tags.join(', ') ?? '');
+  const [visitStatus, setVisitStatus] = useState<'visited' | 'want'>(initialPlace?.visitStatus ?? 'want');
+  const [isRecommended, setIsRecommended] = useState(initialPlace?.isRecommended ?? false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteConfirmationVisible, setIsDeleteConfirmationVisible] = useState(false);
@@ -95,6 +110,28 @@ export function SavedPlaceSheet({ onDelete, onDismiss, onUpdate, savedPlaces, vi
     }
   };
 
+  const togglePublicVisibility = async (): Promise<void> => {
+    if (!selected || isSaving || isDeleting) return;
+
+    const visibility = selected.visibility === 'public' ? 'private' : 'public';
+    setError(null);
+    setIsSaving(true);
+    try {
+      const version = await setSavedPlaceVisibility({
+        expectedVersion: selected.version,
+        savedId: selected.savedId,
+        visibility,
+      });
+      const nextPlace: SavedPlaceDraft = { ...selected, version, visibility };
+      setSelected(nextPlace);
+      onUpdate(nextPlace);
+    } catch {
+      setError(t('savedPlaces.visibilityError'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const close = (): void => {
     if (isSaving || isDeleting) return;
     onDismiss();
@@ -118,6 +155,22 @@ export function SavedPlaceSheet({ onDelete, onDismiss, onUpdate, savedPlaces, vi
                   <Text style={styles.previewMarker}>{t('savedPlaces.previewMarker')}</Text>
                 ) : null}
               </View>
+
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: selected.visibility === 'public', disabled: isSaving || isDeleting }}
+                disabled={isSaving || isDeleting}
+                onPress={() => void togglePublicVisibility()}
+                style={[styles.publicSetting, selected.visibility === 'public' ? styles.publicSettingEnabled : null]}
+              >
+                <View style={styles.publicSettingText}>
+                  <Text style={styles.publicSettingTitle}>{t('savedPlaces.publicTitle')}</Text>
+                  <Text style={styles.publicSettingBody}>{t('savedPlaces.publicBody')}</Text>
+                </View>
+                <View style={[styles.publicIndicator, selected.visibility === 'public' ? styles.publicIndicatorEnabled : null]}>
+                  <View style={[styles.publicKnob, selected.visibility === 'public' ? styles.publicKnobEnabled : null]} />
+                </View>
+              </Pressable>
 
               <Text style={styles.label}>{t('savedPlaces.visitStatus')}</Text>
               <View style={styles.segmentedControl}>
@@ -482,6 +535,57 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginTop: spacing.sm,
     textTransform: 'uppercase',
+  },
+  publicIndicator: {
+    backgroundColor: '#CDD3CF',
+    borderRadius: radii.pill,
+    height: 24,
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+    width: 43,
+  },
+  publicIndicatorEnabled: {
+    backgroundColor: colors.wasabi,
+  },
+  publicKnob: {
+    backgroundColor: colors.paper,
+    borderRadius: radii.pill,
+    height: 18,
+    width: 18,
+  },
+  publicKnobEnabled: {
+    alignSelf: 'flex-end',
+  },
+  publicSetting: {
+    alignItems: 'center',
+    backgroundColor: '#F0F2EA',
+    borderColor: '#DDE1D9',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    padding: spacing.sm,
+  },
+  publicSettingBody: {
+    color: colors.muted,
+    fontFamily: type.body,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  publicSettingEnabled: {
+    borderColor: colors.wasabi,
+  },
+  publicSettingText: {
+    flex: 1,
+  },
+  publicSettingTitle: {
+    color: colors.ink,
+    fontFamily: type.body,
+    fontSize: 14,
+    fontWeight: '900',
   },
   primaryButton: {
     alignItems: 'center',

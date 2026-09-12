@@ -14,12 +14,15 @@ export type SavedPlaceDraft = {
   address: string;
   collectionId: string | null;
   collectionName: string | null;
+  coordinate: { latitude: number; longitude: number } | null;
   displayName: string;
   isRecommended: boolean;
   note: string;
+  regionPath: Array<{ id: string; label: string }>;
   savedId: string;
   tags: string[];
   visitStatus: 'visited' | 'want';
+  visibility: 'private' | 'public' | 'unlisted';
   version: number;
 };
 
@@ -128,12 +131,15 @@ export const saveSearchCandidate = async ({
       address: candidate.address,
       collectionId: collection?.id ?? null,
       collectionName: collection?.name ?? null,
+      coordinate: null,
       displayName: candidate.displayName,
       isRecommended: false,
       note,
+      regionPath: [],
       savedId: `preview-${candidate.ticket}`,
       tags,
       visitStatus,
+      visibility: 'private',
       version: 1,
     };
   }
@@ -164,12 +170,15 @@ export const saveSearchCandidate = async ({
     address: candidate.address,
     collectionId: collection?.id ?? null,
     collectionName: collection?.name ?? null,
+    coordinate: null,
     displayName: candidate.displayName,
     isRecommended: result.saved_is_recommended,
     note: result.saved_personal_note ?? '',
+    regionPath: [],
     savedId: result.saved_id,
     tags: result.saved_tags,
     visitStatus: result.saved_visit_status,
+    visibility: 'private',
     version: result.saved_version,
   };
 };
