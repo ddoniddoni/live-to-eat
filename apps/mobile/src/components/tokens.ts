@@ -1,14 +1,19 @@
 import { Platform } from 'react-native';
 
 export const colors = {
-  canvas: '#F3F5EF',
-  ink: '#182028',
-  muted: '#657078',
+  canvas: '#FAFBF9',
+  ink: '#252C29',
+  muted: '#717772',
   paper: '#FFFFFF',
-  panelMuted: '#B7C0C5',
-  rule: '#354049',
-  tomato: '#FF5B45',
-  wasabi: '#C7EE55',
+  panelMuted: '#DDE4DD',
+  rule: '#E7EAE5',
+  tomato: '#C84032',
+  wasabi: '#DFEDCD',
+  blush: '#FBECE6',
+  sage: '#E9EFE4',
+  lavender: '#EFEBF5',
+  blue: '#E8EFF4',
+  success: '#427048',
 } as const;
 
 export const spacing = {
@@ -20,7 +25,7 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  panel: 28,
+  panel: 22,
   pill: 999,
 } as const;
 

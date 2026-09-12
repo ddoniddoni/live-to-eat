@@ -19,3 +19,5 @@ export const createNewSavedPlace = (): NewSavedPlace => ({
 });
 
 export const canRecommend = (visitStatus: VisitStatus): boolean => visitStatus === 'visited';
+
+export * from './notebook';

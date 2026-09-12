@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FoodArtwork } from '@/components/ui/Artwork';
 import { colors, radii, spacing, type } from '@/components/tokens';
 import {
   type AuthFailureCode,
@@ -92,7 +93,8 @@ const SignInScreen = ({ auth }: { auth: AuthSessionController }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>{t('auth.signInEyebrow')}</Text>
+        <Text style={{color:colors.tomato,fontSize:26,fontWeight:'800',letterSpacing:-1}}>LiveToEat</Text>
+        <View style={{backgroundColor:colors.sage,borderRadius:28,height:210,marginVertical:28,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:18}}><View style={{transform:[{rotate:'-12deg'}]}}><FoodArtwork size={132}/></View><View style={{transform:[{rotate:'12deg'}]}}><FoodArtwork kind={1} size={112}/></View></View>
         <Text accessibilityRole="header" style={styles.title}>
           {t('auth.signInTitle')}
         </Text>
@@ -105,7 +107,7 @@ const SignInScreen = ({ auth }: { auth: AuthSessionController }) => {
               buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
               buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
               cornerRadius={14}
-              onPress={() => void auth.signInWithNativeApple()}
+              onPress={() => { if (!disabled) void auth.signInWithNativeApple(); }}
               style={[styles.appleButton, disabled ? styles.buttonDisabled : null]}
             />
           ) : (
@@ -120,10 +122,6 @@ const SignInScreen = ({ auth }: { auth: AuthSessionController }) => {
 
         <ErrorNotice code={auth.error} />
 
-        <View style={styles.detailCard}>
-          <Text style={styles.detailTitle}>{t('auth.googleBoundaryTitle')}</Text>
-          <Text style={styles.detailBody}>{t('auth.googleBoundaryBody')}</Text>
-        </View>
         <View style={styles.detailCard}>
           <Text style={styles.detailTitle}>{t('auth.accountRecoveryTitle')}</Text>
           <Text style={styles.detailBody}>{t('auth.accountRecoveryBody')}</Text>
@@ -166,6 +164,7 @@ const OnboardingScreen = ({ auth, onChangeLanguage }: AuthGateProps) => {
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>{t('auth.displayName')}</Text>
           <TextInput
+            accessibilityLabel={t('auth.displayName')}
             autoCapitalize="words"
             maxLength={80}
             onChangeText={setDisplayName}
@@ -323,20 +322,20 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   detailBody: {
-    color: colors.panelMuted,
+    color: colors.muted,
     fontFamily: type.body,
     fontSize: 14,
     lineHeight: 20,
   },
   detailCard: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.sage,
     borderRadius: radii.panel,
     gap: 6,
     marginTop: spacing.sm,
     padding: spacing.lg,
   },
   detailTitle: {
-    color: colors.paper,
+    color: colors.ink,
     fontFamily: type.body,
     fontSize: 15,
     fontWeight: '800',
