@@ -18,7 +18,7 @@
     "doctor": "expo-doctor",
     "test:e2e": "maestro test .maestro",
     "preview:web": "EXPO_PUBLIC_AUTH_PREVIEW=true expo start --web",
-    "test:unit": "vitest run src/features/notebook/demoStorage.test.ts"
+    "test:unit": "vitest run src/features/auth/authCallback.test.ts src/features/notebook/demoStorage.test.ts"
   },
   "dependencies": {
     "@live-to-eat/domain": "0.1.0",

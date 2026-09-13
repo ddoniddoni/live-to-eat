@@ -5,11 +5,21 @@ export type SupportedLocale = 'en' | 'ko';
 
 export type AuthFailureCode =
   | 'ACCOUNT_BLOCKED'
+  | 'AUTH_LINK_INVALID'
   | 'AUTHENTICATION_REQUIRED'
   | 'CONFIGURATION_REQUIRED'
+  | 'EMAIL_DELIVERY_UNAVAILABLE'
+  | 'EMAIL_NOT_CONFIRMED'
+  | 'EMAIL_RATE_LIMITED'
   | 'HANDLE_TAKEN'
+  | 'INVALID_CREDENTIALS'
+  | 'INVALID_EMAIL'
   | 'INVALID_ONBOARDING_INPUT'
-  | 'REQUEST_FAILED';
+  | 'PASSWORD_UNCHANGED'
+  | 'REQUEST_FAILED'
+  | 'SIGNUP_DISABLED'
+  | 'USER_ALREADY_REGISTERED'
+  | 'WEAK_PASSWORD';
 
 export class AuthFlowError extends Error {
   readonly code: AuthFailureCode;
@@ -43,6 +53,32 @@ export const toAuthFailure = (error: unknown): AuthFlowError => {
   if (error instanceof AuthFlowError) return error;
 
   switch (getErrorCode(error)) {
+    case 'bad_code_verifier':
+    case 'bad_jwt':
+    case 'flow_state_expired':
+    case 'flow_state_not_found':
+    case 'otp_expired':
+    case 'session_expired':
+      return new AuthFlowError('AUTH_LINK_INVALID');
+    case 'email_address_invalid':
+      return new AuthFlowError('INVALID_EMAIL');
+    case 'email_address_not_authorized':
+      return new AuthFlowError('EMAIL_DELIVERY_UNAVAILABLE');
+    case 'email_not_confirmed':
+      return new AuthFlowError('EMAIL_NOT_CONFIRMED');
+    case 'invalid_credentials':
+      return new AuthFlowError('INVALID_CREDENTIALS');
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return new AuthFlowError('EMAIL_RATE_LIMITED');
+    case 'same_password':
+      return new AuthFlowError('PASSWORD_UNCHANGED');
+    case 'signup_disabled':
+      return new AuthFlowError('SIGNUP_DISABLED');
+    case 'user_already_exists':
+      return new AuthFlowError('USER_ALREADY_REGISTERED');
+    case 'weak_password':
+      return new AuthFlowError('WEAK_PASSWORD');
     case '23505':
       return new AuthFlowError('HANDLE_TAKEN');
     case '22023':

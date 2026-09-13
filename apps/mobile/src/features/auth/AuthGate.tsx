@@ -1,9 +1,6 @@
-import * as AppleAuthentication from 'expo-apple-authentication';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,8 +10,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { FoodArtwork } from '@/components/ui/Artwork';
 import { colors, radii, spacing, type } from '@/components/tokens';
+import { FoodArtwork } from '@/components/ui/Artwork';
+import { Icon } from '@/components/ui/Icon';
 import {
   type AuthFailureCode,
   type OnboardingInput,
@@ -22,6 +20,9 @@ import {
   isValidHandle,
 } from '@/features/auth/authApi';
 import type { AuthSessionController } from '@/features/auth/useAuthSession';
+import { AuthCredentialScreen } from '@/features/auth/AuthCredentialScreen';
+import { LaunchScreen } from '@/features/auth/LaunchScreen';
+import { PasswordRecoveryScreen } from '@/features/auth/PasswordRecoveryScreen';
 
 type AuthGateProps = {
   auth: AuthSessionController;
@@ -52,18 +53,6 @@ const PrimaryButton = ({ disabled = false, label, onPress, variant = 'dark' }: P
   </Pressable>
 );
 
-const StatusPage = ({ body, title }: { body: string; title: string }) => (
-  <SafeAreaView style={styles.safeArea}>
-    <View style={styles.statusPage}>
-      <ActivityIndicator color={colors.tomato} size="small" />
-      <Text accessibilityRole="header" style={styles.statusTitle}>
-        {title}
-      </Text>
-      <Text style={styles.statusBody}>{body}</Text>
-    </View>
-  </SafeAreaView>
-);
-
 const ErrorNotice = ({ code }: { code: AuthFailureCode | null }) => {
   const { t } = useTranslation();
   if (!code) return null;
@@ -73,61 +62,6 @@ const ErrorNotice = ({ code }: { code: AuthFailureCode | null }) => {
     <View accessibilityRole="alert" style={styles.errorNotice}>
       <Text style={styles.errorText}>{t(key)}</Text>
     </View>
-  );
-};
-
-const SignInScreen = ({ auth }: { auth: AuthSessionController }) => {
-  const { t } = useTranslation();
-  const [nativeAppleAvailable, setNativeAppleAvailable] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-
-    void AppleAuthentication.isAvailableAsync().then(setNativeAppleAvailable).catch(() => {
-      setNativeAppleAvailable(false);
-    });
-  }, []);
-
-  const disabled = auth.busy;
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        <Text style={{color:colors.tomato,fontSize:26,fontWeight:'800',letterSpacing:-1}}>LiveToEat</Text>
-        <View style={{backgroundColor:colors.sage,borderRadius:28,height:210,marginVertical:28,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:18}}><View style={{transform:[{rotate:'-12deg'}]}}><FoodArtwork size={132}/></View><View style={{transform:[{rotate:'12deg'}]}}><FoodArtwork kind={1} size={112}/></View></View>
-        <Text accessibilityRole="header" style={styles.title}>
-          {t('auth.signInTitle')}
-        </Text>
-        <Text style={styles.lead}>{t('auth.signInBody')}</Text>
-
-        <View style={styles.actionGroup}>
-          <PrimaryButton disabled={disabled} label={t('auth.google')} onPress={() => void auth.signInWithGoogle()} />
-          {Platform.OS === 'ios' && nativeAppleAvailable ? (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-              cornerRadius={14}
-              onPress={() => { if (!disabled) void auth.signInWithNativeApple(); }}
-              style={[styles.appleButton, disabled ? styles.buttonDisabled : null]}
-            />
-          ) : (
-            <PrimaryButton
-              disabled={disabled}
-              label={t('auth.appleBrowser')}
-              onPress={() => void auth.signInWithAppleBrowser()}
-              variant="light"
-            />
-          )}
-        </View>
-
-        <ErrorNotice code={auth.error} />
-
-        <View style={styles.detailCard}>
-          <Text style={styles.detailTitle}>{t('auth.accountRecoveryTitle')}</Text>
-          <Text style={styles.detailBody}>{t('auth.accountRecoveryBody')}</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
   );
 };
 
@@ -229,17 +163,72 @@ const OnboardingScreen = ({ auth, onChangeLanguage }: AuthGateProps) => {
   );
 };
 
-const ConfigurationScreen = ({ auth }: { auth: AuthSessionController }) => {
+const EmailConfirmationScreen = ({ auth }: { auth: AuthSessionController }) => {
   const { t } = useTranslation();
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.statusPage}>
-        <Text style={styles.eyebrow}>{t('auth.setupEyebrow')}</Text>
+      <View style={styles.confirmationPage}>
+        <View accessibilityElementsHidden style={styles.confirmationArtwork}>
+          <FoodArtwork kind={1} size={96} />
+          <View style={styles.confirmationIcon}>
+            <Icon color={colors.paper} name="check" size={24} />
+          </View>
+        </View>
+        <Text style={styles.eyebrow}>{t('auth.confirmationEyebrow')}</Text>
         <Text accessibilityRole="header" style={styles.statusTitle}>
-          {t('auth.configurationTitle')}
+          {t('auth.confirmationTitle')}
         </Text>
-        <Text style={styles.statusBody}>{t('auth.configurationBody')}</Text>
-        <PrimaryButton label={t('auth.retry')} onPress={() => void auth.retry()} variant="light" />
+        <Text style={styles.statusBody}>
+          {t('auth.confirmationBody', { email: auth.pendingEmail ?? t('auth.yourEmail') })}
+        </Text>
+        <PrimaryButton label={t('auth.goToSignIn')} onPress={auth.returnToSignIn} />
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const PasswordResetSentScreen = ({ auth }: { auth: AuthSessionController }) => {
+  const { t } = useTranslation();
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.confirmationPage}>
+        <View accessibilityElementsHidden style={[styles.confirmationArtwork, styles.resetArtwork]}>
+          <Icon color={colors.tomato} name="link" size={42} />
+          <View style={[styles.confirmationIcon, styles.mailIcon]}>
+            <Icon color={colors.paper} name="check" size={24} />
+          </View>
+        </View>
+        <Text style={styles.eyebrow}>{t('auth.resetSentEyebrow')}</Text>
+        <Text accessibilityRole="header" style={styles.statusTitle}>
+          {t('auth.resetSentTitle')}
+        </Text>
+        <Text style={styles.statusBody}>
+          {t('auth.resetSentBody', { email: auth.pendingEmail ?? t('auth.yourEmail') })}
+        </Text>
+        <Text style={styles.statusHint}>{t('auth.resetSentPrivacy')}</Text>
+        <PrimaryButton label={t('auth.goToSignIn')} onPress={auth.returnToSignIn} />
+      </View>
+    </SafeAreaView>
+  );
+};
+
+const PasswordRecoveryCompleteScreen = ({ auth }: { auth: AuthSessionController }) => {
+  const { t } = useTranslation();
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.confirmationPage}>
+        <View accessibilityElementsHidden style={[styles.confirmationArtwork, styles.completeArtwork]}>
+          <Icon color={colors.paper} name="check" size={46} />
+        </View>
+        <Text style={styles.eyebrow}>{t('auth.passwordUpdatedEyebrow')}</Text>
+        <Text accessibilityRole="header" style={styles.statusTitle}>
+          {t('auth.passwordUpdatedTitle')}
+        </Text>
+        <Text style={styles.statusBody}>{t('auth.passwordUpdatedBody')}</Text>
+        <PrimaryButton label={t('auth.signInWithNewPassword')} onPress={auth.returnToSignIn} />
       </View>
     </SafeAreaView>
   );
@@ -265,29 +254,23 @@ const RetryScreen = ({ auth }: { auth: AuthSessionController }) => {
 };
 
 export const AuthGate = ({ auth, onChangeLanguage }: AuthGateProps) => {
-  const { t } = useTranslation();
-
   if (auth.status === 'loading') {
-    return <StatusPage body={t('auth.loadingBody')} title={t('auth.loadingTitle')} />;
+    return <LaunchScreen />;
   }
 
-  if (auth.status === 'configuration-required') return <ConfigurationScreen auth={auth} />;
-  if (auth.status === 'signed-out') return <SignInScreen auth={auth} />;
+  if (auth.status === 'configuration-required' || auth.status === 'signed-out') {
+    return <AuthCredentialScreen auth={auth} />;
+  }
+  if (auth.status === 'email-confirmation-required') return <EmailConfirmationScreen auth={auth} />;
+  if (auth.status === 'password-reset-sent') return <PasswordResetSentScreen auth={auth} />;
+  if (auth.status === 'password-recovery') return <PasswordRecoveryScreen auth={auth} />;
+  if (auth.status === 'password-recovery-complete') return <PasswordRecoveryCompleteScreen auth={auth} />;
   if (auth.status === 'onboarding') return <OnboardingScreen auth={auth} onChangeLanguage={onChangeLanguage} />;
 
   return <RetryScreen auth={auth} />;
 };
 
 const styles = StyleSheet.create({
-  actionGroup: {
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  appleButton: {
-    height: 52,
-    opacity: 1,
-    width: '100%',
-  },
   buttonDisabled: {
     opacity: 0.45,
   },
@@ -305,8 +288,40 @@ const styles = StyleSheet.create({
   checkboxChecked: {
     backgroundColor: colors.wasabi,
   },
-  configurationBody: {
-    color: colors.muted,
+  confirmationArtwork: {
+    borderColor: colors.paper,
+    borderRadius: 28,
+    borderWidth: 5,
+    boxShadow: '0 12px 20px rgba(37, 44, 41, 0.14)',
+    position: 'relative',
+  },
+  confirmationIcon: {
+    alignItems: 'center',
+    backgroundColor: colors.success,
+    borderColor: colors.paper,
+    borderRadius: 22,
+    borderWidth: 4,
+    bottom: -10,
+    height: 44,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: -12,
+    width: 44,
+  },
+  confirmationPage: {
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.md,
+    justifyContent: 'center',
+    paddingHorizontal: 36,
+  },
+  completeArtwork: {
+    alignItems: 'center',
+    backgroundColor: colors.success,
+    height: 96,
+    justifyContent: 'center',
+    transform: [{ rotate: '-5deg' }],
+    width: 96,
   },
   consentRow: {
     alignItems: 'flex-start',
@@ -320,25 +335,6 @@ const styles = StyleSheet.create({
     fontFamily: type.body,
     fontSize: 14,
     lineHeight: 21,
-  },
-  detailBody: {
-    color: colors.muted,
-    fontFamily: type.body,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  detailCard: {
-    backgroundColor: colors.sage,
-    borderRadius: radii.panel,
-    gap: 6,
-    marginTop: spacing.sm,
-    padding: spacing.lg,
-  },
-  detailTitle: {
-    color: colors.ink,
-    fontFamily: type.body,
-    fontSize: 15,
-    fontWeight: '800',
   },
   errorNotice: {
     backgroundColor: '#FFE4DE',
@@ -418,6 +414,10 @@ const styles = StyleSheet.create({
   languageTextSelected: {
     color: colors.paper,
   },
+  mailIcon: {
+    bottom: -12,
+    right: -14,
+  },
   lead: {
     color: colors.ink,
     fontFamily: type.body,
@@ -462,6 +462,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
   },
+  resetArtwork: {
+    alignItems: 'center',
+    backgroundColor: colors.sage,
+    height: 96,
+    justifyContent: 'center',
+    width: 96,
+  },
   safeArea: {
     backgroundColor: colors.canvas,
     flex: 1,
@@ -471,6 +478,14 @@ const styles = StyleSheet.create({
     fontFamily: type.body,
     fontSize: 16,
     lineHeight: 24,
+    textAlign: 'center',
+  },
+  statusHint: {
+    color: colors.muted,
+    fontFamily: type.body,
+    fontSize: 13,
+    lineHeight: 19,
+    maxWidth: 320,
     textAlign: 'center',
   },
   statusPage: {

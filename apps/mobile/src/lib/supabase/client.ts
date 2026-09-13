@@ -32,6 +32,9 @@ export const getSupabaseClient = (): SupabaseClient | null => {
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: false,
+        experimental: {
+          appendPkceFlowIdToRedirects: true,
+        },
         flowType: 'pkce',
         persistSession: true,
         storage: secureSessionStorage,
@@ -69,11 +72,13 @@ export const configureSupabaseAutoRefresh = (): (() => void) => {
 
 export const clearSupabaseSession = async (): Promise<void> => {
   const supabase = getSupabaseClient();
+  let signOutError: unknown = null;
 
   if (supabase) {
     const { error } = await supabase.auth.signOut({ scope: 'local' });
-    if (error) throw error;
+    signOutError = error;
   }
 
   await secureSessionStorage.removeItem(sessionStorageKey);
+  if (signOutError) throw signOutError;
 };
