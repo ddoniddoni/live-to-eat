@@ -1,27 +1,20 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, radii, spacing, type } from '@/components/tokens';
+import { colors, spacing, type } from '@/components/tokens';
 import { FoodArtwork } from '@/components/ui/Artwork';
 import { Icon } from '@/components/ui/Icon';
-import {
-  type AuthFailureCode,
-  type OnboardingInput,
-  type SupportedLocale,
-  isValidHandle,
-} from '@/features/auth/authApi';
+import { type AuthFailureCode, type SupportedLocale } from '@/features/auth/authApi';
 import type { AuthSessionController } from '@/features/auth/useAuthSession';
 import { AuthCredentialScreen } from '@/features/auth/AuthCredentialScreen';
 import { LaunchScreen } from '@/features/auth/LaunchScreen';
+import { OnboardingScreen } from '@/features/auth/OnboardingScreen';
 import { PasswordRecoveryScreen } from '@/features/auth/PasswordRecoveryScreen';
 
 type AuthGateProps = {
@@ -62,104 +55,6 @@ const ErrorNotice = ({ code }: { code: AuthFailureCode | null }) => {
     <View accessibilityRole="alert" style={styles.errorNotice}>
       <Text style={styles.errorText}>{t(key)}</Text>
     </View>
-  );
-};
-
-const OnboardingScreen = ({ auth, onChangeLanguage }: AuthGateProps) => {
-  const { i18n, t } = useTranslation();
-  const initialLocale: SupportedLocale = i18n.language.startsWith('ko') ? 'ko' : 'en';
-  const [displayName, setDisplayName] = useState('');
-  const [handle, setHandle] = useState('');
-  const [locale, setLocale] = useState<SupportedLocale>(initialLocale);
-  const [accepted, setAccepted] = useState(false);
-  const handleIsValid = isValidHandle(handle);
-  const canContinue = displayName.trim().length > 0 && handleIsValid && accepted && !auth.busy;
-
-  const chooseLocale = (nextLocale: SupportedLocale): void => {
-    setLocale(nextLocale);
-    void onChangeLanguage(nextLocale);
-  };
-
-  const submit = (): void => {
-    if (!canContinue) return;
-    const input: OnboardingInput = { displayName, handle, locale };
-    void auth.completeOnboarding(input);
-  };
-
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-        <Text style={styles.eyebrow}>{t('auth.onboardingEyebrow')}</Text>
-        <Text accessibilityRole="header" style={styles.title}>
-          {t('auth.onboardingTitle')}
-        </Text>
-        <Text style={styles.lead}>{t('auth.onboardingBody')}</Text>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>{t('auth.displayName')}</Text>
-          <TextInput
-            accessibilityLabel={t('auth.displayName')}
-            autoCapitalize="words"
-            maxLength={80}
-            onChangeText={setDisplayName}
-            placeholder={t('auth.displayNamePlaceholder')}
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={displayName}
-          />
-        </View>
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>{t('auth.handle')}</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={30}
-            onChangeText={setHandle}
-            placeholder={t('auth.handlePlaceholder')}
-            placeholderTextColor={colors.muted}
-            style={[styles.input, handle.length > 0 && !handleIsValid ? styles.inputInvalid : null]}
-            value={handle}
-          />
-          <Text style={styles.fieldHint}>{t('auth.handleHint')}</Text>
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>{t('auth.language')}</Text>
-          <View style={styles.languageRow}>
-            {(['ko', 'en'] as const).map((option) => {
-              const selected = locale === option;
-              return (
-                <Pressable
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  key={option}
-                  onPress={() => chooseLocale(option)}
-                  style={[styles.languageOption, selected ? styles.languageOptionSelected : null]}
-                >
-                  <Text style={[styles.languageText, selected ? styles.languageTextSelected : null]}>
-                    {option === 'ko' ? '한국어' : 'English'}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: accepted }}
-          onPress={() => setAccepted((value) => !value)}
-          style={styles.consentRow}
-        >
-          <View accessibilityElementsHidden style={[styles.checkbox, accepted ? styles.checkboxChecked : null]} />
-          <Text style={styles.consentText}>{t('auth.consent')}</Text>
-        </Pressable>
-        <Text style={styles.legalNote}>{t('auth.legalNote')}</Text>
-
-        <ErrorNotice code={auth.error} />
-        <PrimaryButton disabled={!canContinue} label={t('auth.finish')} onPress={submit} />
-      </ScrollView>
-    </SafeAreaView>
   );
 };
 
@@ -277,17 +172,6 @@ const styles = StyleSheet.create({
   buttonPressed: {
     opacity: 0.82,
   },
-  checkbox: {
-    borderColor: colors.ink,
-    borderRadius: 5,
-    borderWidth: 2,
-    height: 20,
-    marginTop: 1,
-    width: 20,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.wasabi,
-  },
   confirmationArtwork: {
     borderColor: colors.paper,
     borderRadius: 28,
@@ -323,19 +207,6 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-5deg' }],
     width: 96,
   },
-  consentRow: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  consentText: {
-    color: colors.ink,
-    flex: 1,
-    fontFamily: type.body,
-    fontSize: 14,
-    lineHeight: 21,
-  },
   errorNotice: {
     backgroundColor: '#FFE4DE',
     borderColor: colors.tomato,
@@ -359,84 +230,9 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     textTransform: 'uppercase',
   },
-  fieldGroup: {
-    gap: 7,
-    marginTop: spacing.lg,
-  },
-  fieldHint: {
-    color: colors.muted,
-    fontFamily: type.body,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  fieldLabel: {
-    color: colors.ink,
-    fontFamily: type.body,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  input: {
-    backgroundColor: colors.paper,
-    borderColor: '#CDD3CF',
-    borderRadius: 14,
-    borderWidth: 1,
-    color: colors.ink,
-    fontFamily: type.body,
-    fontSize: 16,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 13,
-  },
-  inputInvalid: {
-    borderColor: colors.tomato,
-  },
-  languageOption: {
-    alignItems: 'center',
-    borderColor: '#CDD3CF',
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    flex: 1,
-    paddingVertical: 10,
-  },
-  languageOptionSelected: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
-  },
-  languageRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  languageText: {
-    color: colors.ink,
-    fontFamily: type.body,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  languageTextSelected: {
-    color: colors.paper,
-  },
   mailIcon: {
     bottom: -12,
     right: -14,
-  },
-  lead: {
-    color: colors.ink,
-    fontFamily: type.body,
-    fontSize: 18,
-    lineHeight: 27,
-    marginTop: spacing.md,
-  },
-  legalNote: {
-    color: colors.muted,
-    fontFamily: type.body,
-    fontSize: 12,
-    lineHeight: 17,
-    marginLeft: 32,
-    marginTop: 4,
-  },
-  page: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.page,
-    paddingVertical: 48,
   },
   primaryButton: {
     alignItems: 'center',
@@ -503,14 +299,5 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     lineHeight: 35,
     textAlign: 'center',
-  },
-  title: {
-    color: colors.ink,
-    fontFamily: type.display,
-    fontSize: 42,
-    fontWeight: '900',
-    letterSpacing: -1.7,
-    lineHeight: 46,
-    marginTop: spacing.sm,
   },
 });

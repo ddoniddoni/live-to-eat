@@ -120,7 +120,7 @@ DB migration은 이미 적용한 역사 migration을 수정하지 않는다. 제
 | 공공 장소 데이터 품질·적재 (B02/B05) | NOT_STARTED | 공식 자료·이용 조건 조사만 완료. 표본 측정·전체 적재·갱신·좌표 변환 검증 전 |
 | 자체 장소 DB 검색·상세 (B07) | NOT_STARTED | 자체 ID/페이지네이션/검색·상세 DTO는 문서 계약만 확정 |
 | Supabase migration/RLS (B05) | PARTIAL | 계정 상태·개인 저장·가변 깊이 지역 migration/RLS/제한 상태 RPC를 작성했다. 새 자체 장소·출처·적재 모델은 미구현이다. `npm run test:db`는 로컬 Postgres 미실행으로 `127.0.0.1:54322` 연결이 거부됐고, Docker CLI도 없어 migration/RLS SQL 검증까지 진행하지 못했다 |
-| 이메일·Google·Apple 인증·온보딩·세션 (B06) | PARTIAL | 브랜드 로딩, 이메일 로그인·회원가입, 가입 확인·비밀번호 복구 앱 링크, 새 비밀번호 변경과 제한 RPC·소셜 인증 흐름을 작성했다. Supabase 이메일/provider·SMTP·Redirect URL·Apple 식별자 설정, DB 적용과 실제 계정/메일/양 플랫폼 링크 검증이 남았다 |
+| 이메일·Google·Apple 인증·온보딩·세션 (B06) | PARTIAL | 브랜드 로딩, 이메일 로그인·회원가입, 가입 확인·비밀번호 복구 앱 링크, 새 비밀번호 변경, 2단계 프로필·비공개 원칙 온보딩과 제한 RPC·소셜 인증 흐름을 작성했다. Supabase 이메일/provider·SMTP·Redirect URL·Apple 식별자 설정, 법적 문서 URL·버전, DB 적용과 실제 계정/메일/양 플랫폼 링크 검증이 남았다 |
 | 장소 검색·비공개 저장 기반 (B07) | PARTIAL | 검색→확인→비공개 저장, 개인 폴더, 개인 기록 수정/삭제 UI와 Edge/RPC source를 추가했다. DB 적용·Edge 배포·실계정 확인은 미실행 |
 | 외부 목록·링크 입력 | 제거됨 | 장소 입력을 검색으로 단순화하고, 기존 개인 저장을 보존하는 cleanup migration을 추가 |
 | 내 지도·목록·지역 필터 (B08) | PARTIAL | 지도 핀/클러스터, 저장 목록 동기화, 지역·미분류 필터, 이전 외부 상세 조회와 refresh quota source가 남아 있다. 자체 DB 조회로 전환해야 한다. DB 적용·Edge 배포·실계정/실기기 검증은 미실행 |
@@ -270,6 +270,13 @@ DB migration은 이미 적용한 역사 migration을 수정하지 않는다. 제
 - Supabase 경계: 고정된 `@supabase/supabase-js`의 `resetPasswordForEmail`, `exchangeCodeForSession`, `PASSWORD_RECOVERY`, `updateUser` 공개 계약을 사용한다. 클라이언트에는 publishable key만 유지한다. 로컬 `config.toml`에는 개발 scheme의 세 경로와 PKCE query 패턴을 반영했다.
 - 검증: 콜백 코드/flow id, 오류 fragment, 코드 누락, 유사 host·무관 경로 거부를 단위 테스트 4건으로 추가했다. `npm run check`에서 타입 검사, 문서·한영 436키 검사와 단위 테스트 20건이 통과했고 lint에는 기존 `MapCanvas` 기본 배열 경고 1건만 남았다. React Doctor 변경 범위 점수는 신규 인증 경고를 제거한 뒤 76/100이며 남은 20건은 기존 지도·장소·노트북 코드다. 비밀값 없는 설정의 `expo export --platform all`로 iOS/Android/Web 번들을 `/private/tmp/livetoeat-auth-recovery-final-bundles`에 생성했다. Ego에서 390px·320px 로그인/복구 폼 진입, 이메일 형식 오류, 로그인 복귀와 가로 넘침 부재를 확인했다.
 - 한계/다음: hosted Supabase의 Redirect URL, email provider, custom SMTP와 메일 템플릿을 아직 설정하지 않았다. 실제 가입/복구 메일 전송, 만료·재사용 링크, cold/warm start, iOS Mail·Android 메일 앱 복귀와 새 비밀번호 로그인을 실제 개발 계정으로 검증해야 한다.
+
+### 2026-09-13 — B06 프로필 온보딩
+
+- 작업: B06 / R09,R12,R17,R19. 가입 뒤 표시 이름·고유 핸들을 정하고, 비공개 저장과 선택 공유 원칙·앱 언어·필수 동의를 확인하는 흐름을 한 화면의 긴 폼에서 2단계로 분리했다.
+- UX: 입력과 동시에 공개 프로필 미리보기를 갱신하고, 핸들을 소문자로 정규화하며 형식 오류·중복 서버 오류를 첫 단계에서 수정하게 한다. 두 번째 단계의 언어 변경은 작성값을 유지하고, 이전 이동·로그아웃·키보드 회피·진행 상태·busy/disabled 접근성 상태를 제공한다.
+- 검증: 모바일 TypeScript·lint와 한영 452키 검사가 통과했다. Ego에서 390px 프로필 입력·미리보기·단계 이동, 유효하지 않은 한글 핸들의 버튼 비활성화와 오류색, 언어 변경·동의 전후 완료 버튼 상태·이전 이동을 확인했다. 320px 양 단계에서 가로 넘침 없이 모든 조작이 접근성 트리에 노출됐다.
+- 한계/다음: 실제 핸들 중복 응답과 `complete_onboarding` RPC 성공, 재시작 뒤 프로필·언어 유지, 네이티브 키보드·VoiceOver·TalkBack은 Supabase 개발 환경과 양 플랫폼 빌드에서 검증해야 한다. 공개 이용약관·개인정보 문서의 URL과 실제 버전을 확정해 현재 개발용 RPC 버전을 교체해야 한다.
 
 ## 공식 근거
 
