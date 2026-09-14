@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 import { Keyboard, Pressable, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { buildRegionOptions, inRegion, makeShareDraft, type ShareDraft } from '@live-to-eat/domain';
@@ -29,7 +31,7 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
   const [days, setDays] = useState(7);
   const [consent, setConsent] = useState(false);
   const [showAuthor, setShowAuthor] = useState(true);
-  const [error, setError] = useState(false);
+  const { busy, error, run, cancel } = useRequest();
   const regions = useMemo(() => buildRegionOptions(book.state.places), [book.state.places]);
   const regionPlaces = book.state.places.filter((p) => inRegion(p, region));
   const selectedIds = new Set(ids);
@@ -43,7 +45,8 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
         : (regions.find((r) => r.id === region)?.path.map((p) => p.label).join(' · ') ?? t('regions.unknown'));
   const regionPlaceCountLabel = t('regions.placeCount', { count: regionPlaces.length });
   const create = () => {
-    try {
+    Keyboard.dismiss();
+    void run(async () => {
       const now = Date.now();
       const input: Omit<ShareDraft, 'revokedAt'> = {
         id: `draft-${now}`,
@@ -54,25 +57,25 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
         expiresAt: now + days * 86400000,
         showAuthor,
       };
-      book.update((b) => makeShareDraft(b, input, consent));
+      await book.update((b) => makeShareDraft(b, input, consent), 'share');
+    }, () => {
       onCreated();
       onClose();
-    } catch {
-      setError(true);
-    }
+    });
   };
   if (choosingRegion) return <RegionPickerSheet places={book.state.places} value={region} hint={t('regions.savedHint')}
     onClose={() => setChoosingRegion(false)} onSelect={(id) => {
-      if (id !== region) { setRegion(id); setIds([]); setConsent(false); setError(false); }
+      if (id !== region) { setRegion(id); setIds([]); setConsent(false); cancel(); }
       setChoosingRegion(false);
     }} />;
   return (
     <Sheet
       testID="share-editor"
-      contentKey={step}
+      contentKey={`${step}-${error ?? 'edit'}`}
       title={t('sharing.create')}
       subtitle={t('sharing.draftHint')}
       onClose={onClose}
+      busy={busy}
       unsavedChanges={ids.length > 0 || title.length > 0 || days !== 7 || !showAuthor || region !== initialRegion}
       {...(step > 0 ? { onBack: () => setStep((s) => s - 1) } : {})}
       footer={
@@ -80,12 +83,13 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
           <>
             {!isDemo ? <Notice>{t('sharing.connectionRequired')}</Notice> : null}
             <Action
-              label={t('sharing.saveDraft')}
+              label={t(error ? 'common.retry' : 'sharing.saveDraft')}
+              busy={busy}
               testID="share-save"
               onPress={create}
               disabled={!isDemo || !selected.length || (privateCount > 0 && !consent)}
             />
-            <Action secondary label={t('common.back')} onPress={() => setStep(1)} />
+            <Action secondary disabled={busy} label={t('common.back')} onPress={() => setStep(1)} />
           </>
         ) : (
           <Action
@@ -98,6 +102,7 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
         )
       }
     >
+      <RequestError error={error} />
       <View style={ui.row}>
         {['region', 'places', 'preview'].map((s, index) => (
           <View key={s} style={{ flex: 1, gap: 8 }}>
@@ -184,6 +189,7 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
           <Field
             label={t('sharing.name')}
             testID="share-name"
+            editable={!busy}
             returnKeyType="done"
             onSubmitEditing={Keyboard.dismiss}
             value={title}
@@ -274,7 +280,6 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
             </Pressable>
           ) : null}
           <Text style={ui.muted}>{t('sharing.forwardHint')}</Text>
-          {error ? <Notice>{t('common.saveError')}</Notice> : null}
         </>
       ) : null}
     </Sheet>

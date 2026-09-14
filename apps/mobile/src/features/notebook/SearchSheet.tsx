@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Keyboard, Pressable, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { buildRegionOptions, copyAsPrivate, searchCatalog, type NotebookPlace } from '@live-to-eat/domain';
 import { Sheet } from '@/components/ui/Sheet';
@@ -11,6 +11,9 @@ import { RegionPickerSheet } from '@/features/regions/RegionPickerSheet';
 import { FoodArtwork } from '@/components/ui/Artwork';
 import { demoCatalog } from './demoData';
 import { artKind } from './placeAppearance';
+import { beforeDemoOperation } from './demoRequests';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 
 const regions = buildRegionOptions(demoCatalog);
 export function SearchSheet({
@@ -32,8 +35,11 @@ export function SearchSheet({
   );
   const [choosingRegion, setChoosingRegion] = useState(false);
   const [invalidQuery, setInvalidQuery] = useState(false);
+  const request = useRequest<NotebookPlace[]>({ latest: true, timeoutMs: 12000 });
+  const [searchedPlaces, setSearchedPlaces] = useState<NotebookPlace[]>([]);
   const saved = useMemo(() => new Set(savedIds), [savedIds]);
-  const results = searchCatalog(demoCatalog, search ?? '', region);
+  const results = request.busy || request.error ? [] : search === null
+    ? searchCatalog(demoCatalog, '', region) : searchedPlaces;
   const selectedRegion = regions.find((r) => r.id === region);
   const regionLabel =
     region === 'kr'
@@ -42,10 +48,22 @@ export function SearchSheet({
           .slice(1)
           .map((p) => p.label)
           .join(' · ') ?? t('regions.unknown'));
+  const find = (text: string, nextRegion: string) => {
+    setSearch(text);
+    void request.run(async (signal) => {
+      await beforeDemoOperation('search', signal);
+      return searchCatalog(demoCatalog, text, nextRegion);
+    }, setSearchedPlaces);
+  };
+  const changeRegion = (id: string) => {
+    setRegion(id);
+    request.cancel();
+    if (search !== null) find(search, id);
+  };
   const submit = (text: string) => {
     const value = text.trim();
     setInvalidQuery(value.length < 2);
-    if (value.length >= 2) { Keyboard.dismiss(); setSearch(value); }
+    if (value.length >= 2) { Keyboard.dismiss(); find(value, region); }
   };
   const renderPlace = useCallback(
     ({ item }: { item: NotebookPlace }) => (
@@ -63,7 +81,7 @@ export function SearchSheet({
         hint={t('regions.catalogHint')}
         onClose={() => setChoosingRegion(false)}
         onSelect={(id) => {
-          setRegion(id);
+          changeRegion(id);
           setChoosingRegion(false);
         }}
       />
@@ -132,6 +150,10 @@ export function SearchSheet({
               </Text>
             </View>
             {invalidQuery ? <Notice>{t('placeSearch.queryHint')}</Notice> : null}
+            <RequestError error={request.error} context="search" onRetry={() => submit(query)} />
+            {request.busy ? <View accessibilityLiveRegion="polite" style={ui.row}>
+              <ActivityIndicator color={colors.tomato} /><Text style={ui.muted}>{t('request.searching')}</Text>
+            </View> : null}
             {search === null ? (
               <View style={{ gap: 12 }}>
                 <Text style={ui.label}>{t('search.try')}</Text>
@@ -151,32 +173,33 @@ export function SearchSheet({
             ) : (
               <Text style={ui.muted}>{t('search.queryResults', { query: search })}</Text>
             )}
-            <Text accessibilityRole="header" style={ui.heading}>
+            {!request.busy && !request.error ? <Text accessibilityRole="header" style={ui.heading}>
               {t(search === null ? 'search.samples' : 'placeSearch.results')}{' '}
               <Text style={{ color: colors.tomato }}>{results.length}</Text>
-            </Text>
+            </Text> : null}
           </View>
         }
         ListEmptyComponent={
-          <Empty
+          !request.busy && !request.error ? <Empty
             title={t('search.empty')}
             body={t('search.emptyHint')}
             action={
               region !== 'kr' ? (
-                <Action secondary label={t('search.tryNationwide')} onPress={() => setRegion('kr')} />
+                <Action secondary label={t('search.tryNationwide')} onPress={() => changeRegion('kr')} />
               ) : (
                 <Action
                   secondary
                   label={t('common.clear')}
                   onPress={() => {
                     setQuery('');
+                    request.cancel();
                     setSearch(null);
                     setInvalidQuery(false);
                   }}
                 />
               )
             }
-          />
+          /> : null
         }
       />
     </Sheet>

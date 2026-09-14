@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 import { buildRegionOptions, copyAsPrivate, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { FoodArtwork } from '@/components/ui/Artwork';
@@ -246,8 +248,9 @@ function PublicMapDetail({
   onReport: (target: ReportTarget) => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const request = useRequest();
+  const busy = request.busy ? savingId : null;
   const [copied, setCopied] = useState<string[]>([]);
   const [blockConfirm, setBlockConfirm] = useState(false);
   const language = i18n.language.startsWith('ko') ? 'ko' : 'en';
@@ -282,33 +285,31 @@ function PublicMapDetail({
         version: 1,
       }));
   const save = async (place: NotebookPlace) => {
-    if (busy) return;
-    setBusy(place.savedId);
-    setError(false);
-    try {
+    await request.run(async () => {
+      setSavingId(place.savedId);
       if (isDemo) {
         if (!book.state.places.some((p) => p.savedId === place.savedId))
-          book.upsert(copyAsPrivate(place, place.savedId));
+          await book.upsert(copyAsPrivate(place, place.savedId));
       } else {
         await copyPublicPlace(place.savedId);
-        await book.refresh();
+        if (!await book.refresh()) throw new Error('REFRESH_FAILED');
       }
+    }, () => {
       setCopied((v) => [...v, place.savedId]);
       onSaved();
-    } catch {
-      setError(true);
-    } finally {
-      setBusy(null);
-    }
+    });
   };
   return (
     <Sheet
       title={`${person.displayName}${t('explore.personMap')}`}
       subtitle={`@${person.handle}`}
       onClose={onClose}
+      busy={request.busy}
+      contentKey={request.error ?? 'public'}
     >
+      <RequestError error={request.error} />
       <PublicMapIntro person={person} region={region} isDemo={isDemo} />
-      {error || (snapshot.isError && !isDemo) ? <Notice>{t('discover.copyError')}</Notice> : null}
+      {snapshot.isError && !isDemo ? <Notice>{t('discover.copyError')}</Notice> : null}
       {snapshot.isError && !isDemo ? (
         <Action label={t('common.retry')} onPress={() => void snapshot.refetch()} />
       ) : null}
@@ -358,8 +359,8 @@ function PublicMapDetail({
                 danger
                 label={t('explore.blockConfirm')}
                 onPress={() => {
-                  book.update((b) => ({ ...b, blockedHandles: [...b.blockedHandles, person.handle] }));
-                  onClose();
+                  void request.run(() => book.update((b) => ({ ...b,
+                    blockedHandles: [...new Set([...b.blockedHandles, person.handle])] }), 'settings'), onClose);
                 }}
               />
               <Action secondary label={t('common.cancel')} onPress={() => setBlockConfirm(false)} />

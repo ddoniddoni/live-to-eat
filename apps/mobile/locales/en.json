@@ -568,6 +568,18 @@
     "demo": "Explore with fictional sample places. Your records stay on this device, without connecting to real accounts or map services.",
     "start": "Start my map"
   },
+  "request": {
+    "saveTitle": "Your changes haven't been saved yet",
+    "loadTitle": "Couldn't load your records",
+    "searchTitle": "Couldn't load places",
+    "offline": "The connection was lost. Check your internet connection and try again.",
+    "timeout": "The response took too long. Wait a moment and try again.",
+    "storage": "Couldn't write to this device. Check available storage and try again.",
+    "unknown": "Couldn't finish the request. Wait a moment and try again.",
+    "draftKept": "Your draft is still here on this screen.",
+    "recordsKept": "Previously saved records are still available.",
+    "searching": "Looking for places"
+  },
   "draft": {
     "discardTitle": "Discard your changes?",
     "discardBody": "Your changes have not been saved. Keep editing to continue, or discard them to close.",

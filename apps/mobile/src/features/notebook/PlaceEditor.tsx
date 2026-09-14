@@ -1,11 +1,13 @@
 import { useState } from 'react';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 import { Keyboard, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { parseTags, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { FoodArtwork } from '@/components/ui/Artwork';
 import { Icon } from '@/components/ui/Icon';
-import { Action, Chip, Field, Notice, ui } from '@/components/ui/primitives';
+import { Action, Chip, Field, ui } from '@/components/ui/primitives';
 import { Sheet } from '@/components/ui/Sheet';
 import { artKind } from './placeAppearance';
 
@@ -30,44 +32,26 @@ export function PlaceEditor({
   const { t } = useTranslation();
   const [draft, setDraft] = useState(place);
   const [tags, setTags] = useState(() => place.tags.join(', '));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const { busy, error, run } = useRequest();
   const [confirm, setConfirm] = useState(false);
   const dirty = JSON.stringify(draft) !== JSON.stringify(place) || tags !== place.tags.join(', ');
   const save = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError(false);
-    try {
+    await run(async () => {
       await onSave({
         ...draft,
         tags: parseTags(tags),
         isRecommended: draft.visitStatus === 'visited' && draft.isRecommended,
       });
-      onClose();
-    } catch {
-      setError(true);
-    } finally {
-      setBusy(false);
-    }
+    }, onClose);
   };
   const remove = async () => {
-    if (!onDelete || busy) return;
-    setBusy(true);
-    try {
-      await onDelete();
-      onClose();
-    } catch {
-      setError(true);
-      setConfirm(false);
-    } finally {
-      setBusy(false);
-    }
+    if (onDelete) await run(onDelete, onClose);
   };
   if (confirm)
     return (
       <Sheet title={t('editor.deleteTitle')} onClose={() => setConfirm(false)} busy={busy}>
         <Text style={ui.body}>{t('editor.deleteBody')}</Text>
+        <RequestError error={error} />
         <Action danger label={t('editor.deleteConfirm')} busy={busy} onPress={() => void remove()} />
         <Action secondary label={t('common.cancel')} disabled={busy} onPress={() => setConfirm(false)} />
       </Sheet>
@@ -75,6 +59,7 @@ export function PlaceEditor({
   return (
     <Sheet
       testID="place-editor"
+      contentKey={error ?? 'edit'}
       title={t(isNew ? 'editor.addTitle' : 'editor.title')}
       onClose={onClose}
       unsavedChanges={dirty}
@@ -82,7 +67,7 @@ export function PlaceEditor({
       footer={
         <Action
           testID="place-save"
-          label={t(isNew ? 'editor.saveNew' : 'editor.save')}
+          label={t(error ? 'common.retry' : isNew ? 'editor.saveNew' : 'editor.save')}
           onPress={() => {
             Keyboard.dismiss();
             void save();
@@ -92,6 +77,7 @@ export function PlaceEditor({
         />
       }
     >
+      <RequestError error={error} />
       <View style={[ui.row, { gap: 17 }]}>
         <FoodArtwork kind={artKind(place)} size={92} />
         <View style={{ flex: 1, gap: 7 }}>
@@ -211,6 +197,7 @@ export function PlaceEditor({
           {draft.visibility !== 'private' ? (
             <Field
               label={t('editor.publicNote')}
+              editable={!busy}
               value={draft.publicNote}
               onChangeText={(publicNote) => setDraft((d) => ({ ...d, publicNote }))}
               maxLength={280}
@@ -225,7 +212,6 @@ export function PlaceEditor({
           <Text style={[ui.muted, { flex: 1, color: colors.ink }]}>{t('editor.defaultPrivate')}</Text>
         </View>
       )}
-      {error ? <Notice>{t('common.saveError')}</Notice> : null}
       {onDelete ? (
         <Pressable
           accessibilityRole="button"
