@@ -33,6 +33,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
   };
 
   const submit = (): void => {
+    if (auth.busy) return;
     if (password.length < 8) {
       setLocalError('passwordTooShort');
       return;
@@ -92,6 +93,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
                     autoCapitalize="none"
                     autoComplete="new-password"
                     autoCorrect={false}
+                    editable={!auth.busy}
                     onChangeText={(value) => {
                       clearFeedback();
                       setPassword(value);
@@ -125,6 +127,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
                     autoCapitalize="none"
                     autoComplete="new-password"
                     autoCorrect={false}
+                    editable={!auth.busy}
                     onChangeText={(value) => {
                       clearFeedback();
                       setConfirmation(value);

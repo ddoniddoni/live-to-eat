@@ -10,6 +10,8 @@ import { Action, Chip, Empty, Notice, ui } from '@/components/ui/primitives';
 import { Sheet } from '@/components/ui/Sheet';
 import { demoCatalog, demoPeople } from '@/features/notebook/demoData';
 import type { NotebookController } from '@/features/notebook/useNotebook';
+import { ReportSheet } from '@/features/safety/ReportSheet';
+import type { ReportTarget } from '@/features/safety/reportForm';
 import {
   copyPublicPlace,
   loadDiscoverablePublicMaps,
@@ -31,6 +33,7 @@ export function DiscoverScreen({
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState('all');
   const [selected, setSelected] = useState<Person | null>(null);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const language = i18n.language.startsWith('ko') ? 'ko' : 'en';
   const maps = useQuery({
     queryKey: ['discover', language, isDemo],
@@ -193,7 +196,7 @@ export function DiscoverScreen({
           <Text style={[ui.muted, { flex: 1, fontSize: 12 }]}>{t('explore.privacy')}</Text>
         </View>
       </ScrollView>
-      {selected ? (
+      {selected && !reportTarget ? (
         <PublicMapDetail
           key={selected.handle}
           person={selected}
@@ -201,8 +204,10 @@ export function DiscoverScreen({
           isDemo={isDemo}
           onClose={() => setSelected(null)}
           onSaved={onSaved}
+          onReport={setReportTarget}
         />
       ) : null}
+      {reportTarget ? <ReportSheet target={reportTarget} onClose={() => setReportTarget(null)} /> : null}
     </>
   );
 }
@@ -212,12 +217,14 @@ function PublicMapDetail({
   isDemo,
   onClose,
   onSaved,
+  onReport,
 }: {
   person: Person;
   book: NotebookController;
   isDemo: boolean;
   onClose: () => void;
   onSaved: () => void;
+  onReport: (target: ReportTarget) => void;
 }) {
   const { t, i18n } = useTranslation();
   const [busy, setBusy] = useState<string | null>(null);
@@ -317,10 +324,17 @@ function PublicMapDetail({
               busy={busy === p.savedId}
               onPress={() => void save(p)}
             />
+            <Pressable accessibilityRole="button" accessibilityLabel={t('report.placeActionLabel', { place: p.displayName })}
+              onPress={() => onReport({ kind: 'saved-place', handle: person.handle, displayName: person.displayName, savedId: p.savedId, placeName: p.displayName })}
+              style={({ pressed }) => ({ minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', opacity: pressed ? 0.65 : 1 })}>
+              <Text style={ui.muted}>{t('report.placeAction')}</Text>
+            </Pressable>
           </View>
         );
       })}
       <Text style={ui.muted}>{t('explore.copyHint')}</Text>
+      <Action secondary label={t('report.profileAction')} icon="shield"
+        onPress={() => onReport({ kind: 'profile', handle: person.handle, displayName: person.displayName })} />
       {isDemo ? (
         <>
           <Action secondary label={t('explore.block')} icon="shield" onPress={() => setBlockConfirm(true)} />

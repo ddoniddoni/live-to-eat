@@ -9,8 +9,10 @@ import { Sheet } from '@/components/ui/Sheet';
 import { setPublicMapEnabled } from '@/features/discover/publicMapApi';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { saveExport } from './exportFile';
+import { DeleteAccountSheet } from './DeleteAccountSheet';
+import { SignOutSheet } from '@/features/auth/SignOutSheet';
 
-type Panel = 'edit' | 'language' | 'export' | 'privacy' | 'blocked' | 'help' | 'about' | 'signout' | null;
+type Panel = 'edit' | 'language' | 'export' | 'privacy' | 'blocked' | 'help' | 'about' | 'signout' | 'delete' | null;
 export function ProfileScreen({
   book,
   isDemo,
@@ -159,19 +161,21 @@ export function ProfileScreen({
           {onSignOut ? (
             <SettingRow icon="logout" label={t('auth.signOut')} onPress={() => open('signout')} />
           ) : null}
+          <SettingRow icon="trash" label={t('deletion.title')} onPress={() => open('delete')} />
         </View>
         <Text style={[ui.muted, { textAlign: 'center', fontSize: 11 }]}>
           LiveToEat · {t('profile.footer')}
         </Text>
       </ScrollView>
       {panel === 'edit' ? <ProfileEditor book={book} onClose={() => setPanel(null)} /> : null}
-      {panel && panel !== 'edit' ? (
+      {panel === 'delete' ? <DeleteAccountSheet onClose={() => setPanel(null)} onExport={() => setPanel('export')} /> : null}
+      {panel === 'signout' && onSignOut ? <SignOutSheet onClose={() => setPanel(null)} onSignOut={onSignOut} /> : null}
+      {panel && panel !== 'edit' && panel !== 'delete' && panel !== 'signout' ? (
         <ProfilePanel
           panel={panel}
           book={book}
           isDemo={isDemo}
           onClose={() => setPanel(null)}
-          onSignOut={onSignOut}
         />
       ) : null}
     </>
@@ -252,13 +256,11 @@ function ProfilePanel({
   book,
   isDemo,
   onClose,
-  onSignOut,
 }: {
-  panel: Exclude<Panel, 'edit' | null>;
+  panel: Exclude<Panel, 'edit' | 'delete' | 'signout' | null>;
   book: NotebookController;
   isDemo: boolean;
   onClose: () => void;
-  onSignOut: (() => Promise<void>) | undefined;
 }) {
   const { t, i18n } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -402,19 +404,6 @@ function ProfilePanel({
           <Text style={ui.body}>{t('profile.aboutBody')}</Text>
           <Text style={ui.muted}>{t('profile.version')}</Text>
           <Text style={ui.muted}>{t('profile.artwork')}</Text>
-        </>
-      ) : null}
-      {panel === 'signout' ? (
-        <>
-          <Text style={ui.body}>{t('profile.signoutHint')}</Text>
-          <Action
-            danger
-            label={t('auth.signOut')}
-            onPress={() => {
-              void onSignOut?.();
-            }}
-          />
-          <Action secondary label={t('common.cancel')} onPress={onClose} />
         </>
       ) : null}
     </Sheet>

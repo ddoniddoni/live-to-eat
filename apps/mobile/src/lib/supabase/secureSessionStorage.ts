@@ -1,7 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
-const MANIFEST_SUFFIX = ':manifest';
+const MANIFEST_SUFFIX = '.manifest';
 const CHUNK_BYTE_LIMIT = 1_800;
 
 type SessionManifest = {
@@ -30,10 +30,15 @@ const isSessionManifest = (value: unknown): value is SessionManifest => {
   );
 };
 
-const manifestKey = (key: string): string => `${key}${MANIFEST_SUFFIX}`;
+// Encode the complete key: PKCE keys can contain punctuation too. Hex is
+// injective and uses only characters accepted by native Expo SecureStore.
+const nativeKey = (key: string): string =>
+  `lte.${Array.from(encoder.encode(key), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+
+const manifestKey = (key: string): string => `${nativeKey(key)}${MANIFEST_SUFFIX}`;
 
 const chunkKey = (key: string, generation: string, index: number): string =>
-  `${key}:${generation}:chunk:${index}`;
+  `${nativeKey(key)}.${generation}.chunk.${index}`;
 
 const splitUtf8 = (value: string): string[] => {
   const chunks: string[] = [];
@@ -69,11 +74,13 @@ const readManifest = async (key: string): Promise<SessionManifest | null> => {
 };
 
 const removeChunks = async (key: string, manifest: SessionManifest): Promise<void> => {
-  await Promise.allSettled(
+  const results = await Promise.allSettled(
     Array.from({ length: manifest.chunkCount }, (_, index) =>
       SecureStore.deleteItemAsync(chunkKey(key, manifest.generation, index)),
     ),
   );
+  const failure = results.find((result) => result.status === 'rejected');
+  if (failure?.status === 'rejected') throw failure.reason;
 };
 
 const discardGeneration = async (key: string, generation: string, chunkCount: number): Promise<void> => {
@@ -86,8 +93,9 @@ const discardGeneration = async (key: string, generation: string, chunkCount: nu
 
 const removeStoredItem = async (key: string): Promise<void> => {
   const manifest = await readManifest(key);
-  await SecureStore.deleteItemAsync(manifestKey(key));
   if (manifest) await removeChunks(key, manifest);
+  // Keep the manifest until every chunk is removed so failed deletes can retry.
+  await SecureStore.deleteItemAsync(manifestKey(key));
 };
 
 /**
@@ -126,9 +134,11 @@ export const secureSessionStorage = {
     const chunks = splitUtf8(value);
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         chunks.map((chunk, index) => SecureStore.setItemAsync(chunkKey(key, generation, index), chunk)),
       );
+      const failure = results.find((result) => result.status === 'rejected');
+      if (failure?.status === 'rejected') throw failure.reason;
 
       const nextManifest: SessionManifest = {
         byteLength: encoder.encode(value).byteLength,
@@ -142,7 +152,7 @@ export const secureSessionStorage = {
       throw error;
     }
 
-    if (previousManifest) await removeChunks(key, previousManifest);
+    if (previousManifest) await removeChunks(key, previousManifest).catch(() => undefined);
   },
 
   async removeItem(key: string): Promise<void> {

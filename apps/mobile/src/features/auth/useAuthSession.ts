@@ -40,6 +40,7 @@ type AuthStatus =
   | 'password-recovery'
   | 'password-recovery-complete'
   | 'password-reset-sent'
+  | 'sign-out-error'
   | 'signed-out';
 
 type AuthSessionState = {
@@ -89,11 +90,15 @@ const stateForAccount = async (accountState: AccountState): Promise<AuthSessionS
 export const useAuthSession = (): AuthSessionController => {
   const [state, setState] = useState<AuthSessionState>(initialState);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
   const revision = useRef(0);
   const mounted = useRef(true);
   const passwordRecoveryActive = useRef(false);
+  const sessionClearRequired = useRef(false);
 
   const refresh = useCallback(async (): Promise<void> => {
+    // A token event must not reopen private screens after a failed sign-out.
+    if (sessionClearRequired.current) return;
     const currentRevision = revision.current + 1;
     revision.current = currentRevision;
 
@@ -143,6 +148,7 @@ export const useAuthSession = (): AuthSessionController => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
+      if (sessionClearRequired.current) return;
       if (event === 'PASSWORD_RECOVERY') {
         passwordRecoveryActive.current = true;
         revision.current += 1;
@@ -152,6 +158,8 @@ export const useAuthSession = (): AuthSessionController => {
         return;
       }
 
+      if (busyRef.current) return;
+      if (event === 'SIGNED_OUT') passwordRecoveryActive.current = false;
       if (passwordRecoveryActive.current) return;
       void refresh();
     });
@@ -183,7 +191,9 @@ export const useAuthSession = (): AuthSessionController => {
 
   const runAuthentication = useCallback(
     async (action: () => Promise<boolean>): Promise<void> => {
-      if (busy) return;
+      if (busyRef.current) return;
+      busyRef.current = true;
+      revision.current += 1;
       setBusy(true);
       try {
         const completed = await action();
@@ -193,15 +203,18 @@ export const useAuthSession = (): AuthSessionController => {
           setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'signed-out' });
         }
       } finally {
+        busyRef.current = false;
         if (mounted.current) setBusy(false);
       }
     },
-    [busy, refresh],
+    [refresh],
   );
 
   const registerWithEmail = useCallback(
     async (credentials: EmailCredentials): Promise<void> => {
-      if (busy) return;
+      if (busyRef.current) return;
+      busyRef.current = true;
+      revision.current += 1;
       setBusy(true);
       try {
         const authenticated = await signUpWithEmail(credentials);
@@ -223,15 +236,18 @@ export const useAuthSession = (): AuthSessionController => {
           setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'signed-out' });
         }
       } finally {
+        busyRef.current = false;
         if (mounted.current) setBusy(false);
       }
     },
-    [busy, refresh],
+    [refresh],
   );
 
   const sendPasswordReset = useCallback(
     async (email: string): Promise<void> => {
-      if (busy) return;
+      if (busyRef.current) return;
+      busyRef.current = true;
+      revision.current += 1;
       setBusy(true);
       try {
         await requestPasswordReset(email);
@@ -248,51 +264,71 @@ export const useAuthSession = (): AuthSessionController => {
           setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'signed-out' });
         }
       } finally {
+        busyRef.current = false;
         if (mounted.current) setBusy(false);
       }
     },
-    [busy],
+    [],
   );
 
   const finishPasswordRecovery = useCallback(
     async (password: string): Promise<void> => {
-      if (busy) return;
+      if (busyRef.current) return;
+      busyRef.current = true;
+      revision.current += 1;
       setBusy(true);
+      let passwordUpdated = false;
       try {
         await updateRecoveredPassword(password);
-        await clearSupabaseSession().catch(() => undefined);
+        passwordUpdated = true;
+        sessionClearRequired.current = true;
+        await clearSupabaseSession();
+        sessionClearRequired.current = false;
+        passwordRecoveryActive.current = false;
         if (mounted.current) {
           setState({ error: null, locale: null, pendingEmail: null, status: 'password-recovery-complete' });
         }
       } catch (error) {
         if (mounted.current) {
-          setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'password-recovery' });
+          setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: passwordUpdated ? 'sign-out-error' : 'password-recovery' });
         }
       } finally {
+        busyRef.current = false;
         if (mounted.current) setBusy(false);
       }
     },
-    [busy],
+    [],
   );
 
   const cancelPasswordRecovery = useCallback(async (): Promise<void> => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
+    revision.current += 1;
     setBusy(true);
+    sessionClearRequired.current = true;
     try {
-      await clearSupabaseSession().catch(() => undefined);
+      await clearSupabaseSession();
+      sessionClearRequired.current = false;
       passwordRecoveryActive.current = false;
       revision.current += 1;
       if (mounted.current) {
         setState({ error: null, locale: null, pendingEmail: null, status: 'signed-out' });
       }
+    } catch (error) {
+      if (mounted.current) {
+        setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'sign-out-error' });
+      }
     } finally {
+      busyRef.current = false;
       if (mounted.current) setBusy(false);
     }
-  }, [busy]);
+  }, []);
 
   const finishOnboarding = useCallback(
     async (input: OnboardingInput): Promise<void> => {
-      if (busy) return;
+      if (busyRef.current) return;
+      busyRef.current = true;
+      revision.current += 1;
       setBusy(true);
       try {
         await completeOnboarding(input);
@@ -302,26 +338,33 @@ export const useAuthSession = (): AuthSessionController => {
           setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'onboarding' });
         }
       } finally {
+        busyRef.current = false;
         if (mounted.current) setBusy(false);
       }
     },
-    [busy, refresh],
+    [refresh],
   );
 
   const signOut = useCallback(async (): Promise<void> => {
-    if (busy) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
+    revision.current += 1;
     setBusy(true);
+    sessionClearRequired.current = true;
     try {
       await clearSupabaseSession();
+      sessionClearRequired.current = false;
+      passwordRecoveryActive.current = false;
       await refresh();
     } catch (error) {
       if (mounted.current) {
-        setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'connection-error' });
+        setState({ error: toAuthFailure(error).code, locale: null, pendingEmail: null, status: 'sign-out-error' });
       }
     } finally {
+      busyRef.current = false;
       if (mounted.current) setBusy(false);
     }
-  }, [busy, refresh]);
+  }, [refresh]);
 
   return {
     ...state,
@@ -332,6 +375,7 @@ export const useAuthSession = (): AuthSessionController => {
     completePasswordRecovery: finishPasswordRecovery,
     requestPasswordReset: sendPasswordReset,
     returnToSignIn: () => {
+      if (busyRef.current || sessionClearRequired.current) return;
       passwordRecoveryActive.current = false;
       revision.current += 1;
       setState({ error: null, locale: null, pendingEmail: null, status: 'signed-out' });

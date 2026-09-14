@@ -74,11 +74,13 @@ export const clearSupabaseSession = async (): Promise<void> => {
   const supabase = getSupabaseClient();
   let signOutError: unknown = null;
 
-  if (supabase) {
-    const { error } = await supabase.auth.signOut({ scope: 'local' });
-    signOutError = error;
+  try {
+    if (supabase) {
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      signOutError = error;
+    }
+  } finally {
+    await secureSessionStorage.removeItem(sessionStorageKey);
   }
-
-  await secureSessionStorage.removeItem(sessionStorageKey);
   if (signOutError) throw signOutError;
 };
