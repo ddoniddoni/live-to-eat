@@ -74,7 +74,8 @@ export function Icon({
   filled?: boolean;
 }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden={true}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden={true}
+      accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {['compass', 'globe', 'help', 'clock'].includes(name) ? (
         <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="1.7" />
       ) : null}

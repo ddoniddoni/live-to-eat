@@ -132,16 +132,17 @@ const PasswordRecoveryCompleteScreen = ({ auth }: { auth: AuthSessionController 
 const RetryScreen = ({ auth }: { auth: AuthSessionController }) => {
   const { t } = useTranslation();
   const blocked = auth.status === 'account-blocked';
+  const signOutFailed = auth.status === 'sign-out-error';
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.statusPage}>
         <Text accessibilityRole="header" style={styles.statusTitle}>
-          {t(blocked ? 'auth.blockedTitle' : 'auth.connectionTitle')}
+          {t(signOutFailed ? 'auth.signOutFailedTitle' : blocked ? 'auth.blockedTitle' : 'auth.connectionTitle')}
         </Text>
-        <Text style={styles.statusBody}>{t(blocked ? 'auth.blockedBody' : 'auth.connectionBody')}</Text>
+        <Text style={styles.statusBody}>{t(signOutFailed ? 'auth.signOutFailedBody' : blocked ? 'auth.blockedBody' : 'auth.connectionBody')}</Text>
         <ErrorNotice code={auth.error} />
-        <PrimaryButton disabled={auth.busy} label={t('auth.retry')} onPress={() => void auth.retry()} variant="light" />
+        <PrimaryButton disabled={auth.busy} label={t('auth.retry')} onPress={() => void (signOutFailed ? auth.signOut() : auth.retry())} variant="light" />
         {blocked ? <PrimaryButton disabled={auth.busy} label={t('auth.signOut')} onPress={() => void auth.signOut()} /> : null}
       </View>
     </SafeAreaView>

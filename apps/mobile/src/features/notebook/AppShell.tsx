@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, BackHandler, Platform, Pressable, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, BackHandler, Platform, Pressable, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import type { NotebookPlace } from '@live-to-eat/domain';
@@ -23,7 +23,7 @@ import { FoldersSheet } from './FoldersSheet';
 import { WelcomeSheet } from './WelcomeSheet';
 
 type Overlay =
-  | { type: 'search' }
+  | { type: 'search'; region: string }
   | { type: 'place'; place: NotebookPlace; isNew: boolean }
   | { type: 'folders' }
   | { type: 'share'; region: string }
@@ -44,11 +44,15 @@ export function AppShell({
   const updateCollections = useCallback((collections: PrivateCollection[]) => updateNotebook(b => ({ ...b, collections })), [updateNotebook]);
   useEffect(() => { if (!isDemo) return () => queryClient.clear(); }, [isDemo, queryClient]);
   const [tab, setTab] = useState<'map' | 'discover' | 'profile'>('map');
+  const [mapRegion, setMapRegion] = useState('all');
+  const [discoverRegion, setDiscoverRegion] = useState(isDemo ? 'kr' : 'all');
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [tabBarHeight, setTabBarHeight] = useState(76);
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 3000);
+    if (Platform.OS === 'ios') AccessibilityInfo.announceForAccessibility(toast);
+    const timer = setTimeout(() => setToast(null), 5000);
     return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
@@ -64,6 +68,7 @@ export function AppShell({
     return () => sub.remove();
   }, [tab, overlay]);
   const onClose = () => setOverlay(null);
+  const openSearch = () => setOverlay({ type: 'search', region: tab === 'discover' ? discoverRegion : mapRegion });
   const savePlace = async (place: NotebookPlace) => {
     if (isDemo) {
       const existing = book.state.places.find((p) => p.savedId === place.savedId);
@@ -131,13 +136,15 @@ export function AppShell({
           <MyMapScreen
             book={book}
             isDemo={isDemo}
-            onAdd={() => setOverlay({ type: 'search' })}
+            region={mapRegion}
+            onRegionChange={setMapRegion}
+            onAdd={openSearch}
             onPlace={openPlace}
             onShare={(region) => setOverlay({ type: 'share', region })}
             onFolders={() => setOverlay({ type: 'folders' })}
           />
         ) : tab === 'discover' ? (
-          <DiscoverScreen book={book} isDemo={isDemo} onSaved={() => setToast(t('common.saved'))} />
+          <DiscoverScreen book={book} isDemo={isDemo} region={discoverRegion} onRegionChange={setDiscoverRegion} onSaved={() => setToast(t('common.saved'))} />
         ) : (
           <ProfileScreen
             book={book}
@@ -147,11 +154,12 @@ export function AppShell({
             onSignOut={onSignOut}
           />
         )}
-        <View style={{ position: 'absolute', bottom: insets.bottom + 89, right: 24 }}>
+        <View style={{ position: 'absolute', bottom: tabBarHeight + 16, right: 24 }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('map.addPlace')}
-            onPress={() => setOverlay({ type: 'search' })}
+            testID="add-place"
+            onPress={openSearch}
             style={({ pressed }) => ({
               flexDirection: 'row',
               alignItems: 'center',
@@ -171,6 +179,7 @@ export function AppShell({
           </Pressable>
         </View>
         <View
+          onLayout={(event) => setTabBarHeight(event.nativeEvent.layout.height)}
           style={{
             flexDirection: 'row',
             paddingTop: 10,
@@ -184,9 +193,10 @@ export function AppShell({
             <Pressable
               key={item}
               accessibilityRole="tab"
+              testID={`tab-${item}`}
               accessibilityState={{ selected: tab === item }}
               onPress={() => setTab(item)}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 50 }}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 50, paddingHorizontal: 4 }}
             >
               <View
                 style={{
@@ -207,6 +217,7 @@ export function AppShell({
               <Text
                 style={{
                   fontSize: 11,
+                  textAlign: 'center',
                   fontWeight: tab === item ? '700' : '500',
                   color: tab === item ? colors.tomato : colors.muted,
                 }}
@@ -221,7 +232,7 @@ export function AppShell({
             accessibilityRole="alert"
             style={{
               position: 'absolute',
-              bottom: insets.bottom + 84,
+              bottom: tabBarHeight + 76,
               left: 24,
               right: 24,
               backgroundColor: colors.ink,
@@ -230,12 +241,13 @@ export function AppShell({
               pointerEvents: 'none',
             }}
           >
-            <Text style={{ color: colors.paper, fontSize: 14, textAlign: 'center' }}>{toast}</Text>
+            <Text accessibilityLiveRegion="polite" style={{ color: colors.paper, fontSize: 14, textAlign: 'center' }}>{toast}</Text>
           </View>
         ) : null}
         {overlay?.type === 'search' ? (
           isDemo ? (
             <SearchSheet
+              initialRegion={overlay.region}
               onClose={onClose}
               savedIds={book.state.places.map((p) => p.savedId)}
               onPick={(p) => {

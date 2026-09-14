@@ -44,7 +44,7 @@
     "addPlace": "장소 저장",
     "want": "가고 싶어요",
     "visited": "방문했어요",
-    "locationNote": "위치 권한은 선택이에요. 어느 나라나 도시에서 시작해도 됩니다.",
+    "locationNote": "위치 권한 없이도 지역과 장소명으로 찾을 수 있어요.",
     "signOut": "로그아웃",
     "preview": "미리보기",
     "previewNotice": "미리보기 모드입니다. 이 기기에서 로그인, 저장 데이터, Supabase 호출을 사용하지 않습니다."
@@ -57,7 +57,7 @@
     "description": "장소명이나 지역을 입력한 뒤, 결과를 확인하고 내 지도에 비공개로 저장해요.",
     "placeholder": "예: 성수동 파스타",
     "search": "검색",
-    "globalScope": "전 세계에서 검색해요. 도시나 국가를 검색어에 함께 입력해 보세요.",
+    "globalScope": "검색 결과에서 지점과 주소를 확인해 주세요.",
     "queryHint": "두 글자 이상 입력해 주세요.",
     "searchError": "장소를 찾지 못했어요. 연결을 확인하고 다시 시도해 주세요.",
     "results": "검색 결과",
@@ -152,7 +152,9 @@
     "copyBoundary": "개인 기록은 복사하지 않음",
     "copyToMap": "내 지도에 저장",
     "copied": "저장됨",
-    "copyError": "내 지도에 저장하지 못했어요. 이 장소의 공개 상태가 바뀌었을 수 있어요."
+    "copyError": "내 지도에 저장하지 못했어요. 이 장소의 공개 상태가 바뀌었을 수 있어요.",
+    "regionHint": "선택 지역에 공개 장소가 있는 사람의 지도를 보여요.",
+    "regionPlaceCount": "이 지역의 공개 장소 {{count}}곳"
   },
   "auth": {
     "launchTitle": "맛있는 기억을 꺼내는 중",
@@ -276,7 +278,80 @@
       "password": "비밀번호를 입력해 주세요.",
       "passwordMismatch": "두 비밀번호가 서로 달라요.",
       "passwordTooShort": "비밀번호는 8자 이상이어야 해요."
-    }
+    },
+    "signOutTitle": "잠시 쉬어갈까요?",
+    "signOutFailed": "로그아웃하지 못했어요. 다시 시도해 주세요.",
+    "signOutFailedTitle": "로그아웃을 마무리하지 못했어요",
+    "signOutFailedBody": "기기의 로그인 정보 정리를 완료하지 못했어요. 다시 시도하면 로그아웃을 마무리해요."
+  },
+  "deletion": {
+    "title": "회원탈퇴",
+    "stepInfo": "1 / 2 · 탈퇴 전 안내",
+    "stepConfirm": "2 / 2 · 최종 확인",
+    "eyebrow": "내 계정과 기록",
+    "introTitle": "내 지도와 작별하기 전에",
+    "introBody": "탈퇴하면 사라지는 내용을 먼저 확인해 주세요. 남겨두고 싶은 기록은 미리 내보낼 수 있어요.",
+    "accountTitle": "계정과 프로필",
+    "accountBody": "탈퇴 처리 후에는 이 계정으로 로그인하거나 프로필을 복원할 수 없어요.",
+    "recordsTitle": "저장한 장소와 개인 기록",
+    "recordsBody": "내 저장, 메모, 태그, 방문 기록과 개인 폴더가 삭제 대상에 포함돼요.",
+    "linksTitle": "공개 지도와 공유 링크",
+    "linksBody": "탈퇴 처리가 시작되면 공개 지도와 기존 공유 링크의 접근이 차단돼요.",
+    "exportTitle": "간직할 기록이 있나요?",
+    "exportBody": "내보내기에서 포함되는 기록과 개인 메모 선택을 확인해 주세요.",
+    "copyLimit": "다른 사람이 따로 저장한 장소나 이미 보관한 화면은 회수할 수 없어요.",
+    "continue": "탈퇴 안내 확인 후 계속",
+    "confirmTitle": "마지막으로 확인해 주세요",
+    "confirmBody": "확인만으로 계정이 삭제되지는 않아요. 실제 탈퇴에는 본인 확인이 필요해요.",
+    "summaryTitle": "탈퇴 후에는 되돌릴 수 없어요",
+    "summaryBody": "계정과 내 기록이 삭제되고, 공개 지도와 공유 링크도 더 이상 사용할 수 없어요.",
+    "verificationHint": "본인 확인을 마친 뒤 탈퇴 요청을 확정하는 순서로 진행돼요.",
+    "understood": "삭제되는 내용과 공유 중단을 확인했어요.",
+    "confirmed": "필요한 기록을 확인했으며 회원탈퇴를 원해요.",
+    "verify": "본인 확인 후 탈퇴",
+    "keepAccount": "계정 유지하고 돌아가기",
+    "previewNotice": "현재는 탈퇴 화면 미리보기예요. 계정이나 기록은 삭제되지 않아요.",
+    "unavailable": "아직 탈퇴 요청을 보낼 수 없어요. 본인 확인이나 삭제가 진행되지 않았으며, 계정과 기록은 그대로 유지돼요."
+  },
+  "report": {
+    "title": "신고하기",
+    "stepReason": "1 / 2 · 신고 내용 작성",
+    "stepReview": "2 / 2 · 신고 내용 확인",
+    "eyebrow": "함께 만드는 맛집 지도",
+    "introTitle": "어떤 문제가 있었나요?",
+    "introBody": "신고할 대상을 확인하고 가장 가까운 사유를 골라 주세요.",
+    "profileAction": "이 프로필 신고",
+    "placeAction": "이 공개 기록 신고",
+    "placeActionLabel": "{{place}} 공개 기록 신고",
+    "targetProfile": "신고 대상 · 프로필",
+    "targetPlace": "신고 대상 · 공개 장소 기록",
+    "reasonLabel": "신고 사유 · 필수",
+    "reasons": {
+      "spam": "스팸 또는 반복 광고",
+      "harassment": "괴롭힘 또는 사칭",
+      "hate": "혐오 표현 또는 차별",
+      "unsafe": "폭력적이거나 부적절한 내용",
+      "privacy": "개인정보 노출",
+      "other": "다른 문제"
+    },
+    "details": "추가 설명 · 선택",
+    "detailsRequired": "추가 설명 · 필수",
+    "detailsPlaceholder": "어떤 내용이 문제였는지 알려 주세요.",
+    "detailsHint": "비밀번호나 연락처 등 민감한 정보는 적지 마세요.",
+    "otherHint": "다른 문제를 선택했다면 10자 이상 설명해 주세요.",
+    "review": "신고 내용 확인",
+    "reviewTitle": "보내기 전에 살펴봐요",
+    "reviewBody": "대상과 사유가 맞는지 확인해 주세요. 내용은 다시 수정할 수 있어요.",
+    "reviewPrivacy": "신고는 차단과 별개예요. 이 화면에서는 상대방을 차단하거나 공개 기록을 숨기지 않아요.",
+    "noDetails": "추가 설명 없음",
+    "send": "신고 보내기",
+    "edit": "내용 수정",
+    "previewNotice": "현재는 신고 화면 미리보기예요. 작성한 내용은 운영자나 상대방에게 전송되지 않아요.",
+    "unavailable": "아직 신고가 접수되지 않았어요. 현재는 전송할 수 없으며, 닫기 전까지 작성한 내용을 수정할 수 있어요.",
+    "discardTitle": "작성한 내용을 지울까요?",
+    "discardBody": "아직 신고를 보내지 않았어요. 닫으면 작성한 사유와 설명이 사라져요.",
+    "discard": "내용 지우고 닫기",
+    "keepEditing": "계속 작성하기"
   },
   "common": {
     "close": "닫기",
@@ -322,7 +397,10 @@
     "chooseRegion": "어느 지역을 볼까요?",
     "regionHint": "국가나 지역을 선택하면 그 안의 하위 지역도 함께 보여요.",
     "subtitle_one": "좋아하는 한 끼, 가보고 싶은 곳 {{count}}곳",
-    "subtitle_other": "좋아하는 한 끼, 가보고 싶은 곳 {{count}}곳"
+    "subtitle_other": "좋아하는 한 끼, 가보고 싶은 곳 {{count}}곳",
+    "filteredEmptyTitle": "선택한 조건에 맞는 기록이 없어요",
+    "filteredEmptyBody": "지역이나 필터를 바꾸면 다른 저장을 다시 볼 수 있어요.",
+    "clearFilters": "전체 기록 다시 보기"
   },
   "editor": {
     "title": "장소의 기록",
@@ -348,12 +426,15 @@
     "deleteConfirm": "장소 삭제"
   },
   "search": {
-    "demoHint": "예시 장소로 검색과 저장을 체험해 보세요.",
-    "scope": "전 세계 · 검색어에 도시를 함께 넣어보세요",
+    "demoHint": "국내 예시 장소 · 실제 장소 검색은 연결 전이에요.",
     "try": "이렇게 찾아보세요",
     "samples": "둘러볼 예시 장소",
     "empty": "일치하는 예시 장소가 없어요",
-    "emptyHint": "성수, 커피, 도쿄처럼 다른 검색어를 입력해 보세요."
+    "emptyHint": "검색어를 바꾸거나 검색 지역을 넓혀보세요.",
+    "scopeNationwide": "대한민국 전체의 예시 장소에서 검색해요.",
+    "scopeRegion": "{{region}} 및 하위 지역 안에서 검색해요.",
+    "queryResults": "“{{query}}” 검색 결과",
+    "tryNationwide": "같은 검색어로 전국에서 찾기"
   },
   "explore": {
     "title": "사람을 따라,\n새로운 한 끼.",
@@ -361,7 +442,6 @@
     "search": "이름, 핸들, 소개로 찾기",
     "all": "모든 지역",
     "seoul": "서울",
-    "tokyo": "도쿄",
     "maps": "취향이 담긴 지도",
     "personMap": "의 지도",
     "publicMap": "공개 지도",
@@ -416,7 +496,8 @@
     "placeCount_one": "장소 {{count}}곳",
     "placeCount_other": "장소 {{count}}곳",
     "days_one": "{{count}}일",
-    "days_other": "{{count}}일"
+    "days_other": "{{count}}일",
+    "regionSelectionHint": "상위 지역을 고르면 하위 지역의 저장도 함께 선택할 수 있어요. 지역을 바꾸면 장소 선택과 공개 동의를 다시 확인해요."
   },
   "profile": {
     "title": "프로필",
@@ -486,5 +567,35 @@
     "share": "나누고 싶은 지역과 장소만 골라서",
     "demo": "지금은 예시 장소로 체험할 수 있어요. 기록은 이 기기에만 저장되며 실제 계정이나 지도 서비스에 연결되지 않아요.",
     "start": "내 지도 시작하기"
+  },
+  "draft": {
+    "discardTitle": "작성을 그만둘까요?",
+    "discardBody": "아직 저장하지 않은 내용이 있어요. 계속 작성하거나 내용을 버리고 닫을 수 있어요.",
+    "keepEditing": "계속 작성하기",
+    "discard": "작성 내용 버리기"
+  },
+  "regions": {
+    "title": "지역 선택",
+    "eyebrow": "다음 한 끼를 찾을 지역",
+    "nationwide": "전국",
+    "allSaved": "모든 저장 지역",
+    "unknown": "선택한 지역",
+    "change": "지역 변경 · {{region}}",
+    "apply": "{{region}} 적용",
+    "open": "{{region}} 지역 살펴보기",
+    "find": "지역 이름 찾기",
+    "placeholder": "예: 부산, 수영구, 서귀포",
+    "results": "일치하는 지역",
+    "placeCount": "{{count}}곳",
+    "placeCount_one": "{{count}}곳",
+    "placeCount_other": "{{count}}곳",
+    "noResults": "일치하는 지역이 없어요",
+    "noResultsHint": "다른 지역 이름이나 상위 지역으로 찾아보세요.",
+    "ready": "이 지역에서 살펴볼까요?",
+    "readyHint": "아래 적용 버튼으로 선택을 완료하거나 상위 지역으로 돌아갈 수 있어요.",
+    "catalogHint": "체험용 국내 장소에 연결된 예시 지역이에요.",
+    "savedHint": "현재 불러온 저장의 지역과 하위 장소를 기준으로 보여요.",
+    "publicHint": "공개된 예시 장소가 있는 지역만 보여요.",
+    "showNationwide": "전국에서 다시 보기"
   }
 }

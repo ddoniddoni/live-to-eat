@@ -11,7 +11,7 @@ export function WelcomeSheet({ onClose }: { onClose: () => void }) {
     <Sheet
       title="LiveToEat"
       onClose={onClose}
-      footer={<Action label={t('welcome.start')} onPress={onClose} icon="arrow" />}
+      footer={<Action label={t('welcome.start')} onPress={onClose} icon="arrow" testID="welcome-start" />}
     >
       <View
         style={{

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Linking, Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Keyboard, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { exportCsv, exportRecords } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
@@ -9,8 +9,10 @@ import { Sheet } from '@/components/ui/Sheet';
 import { setPublicMapEnabled } from '@/features/discover/publicMapApi';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { saveExport } from './exportFile';
+import { DeleteAccountSheet } from './DeleteAccountSheet';
+import { SignOutSheet } from '@/features/auth/SignOutSheet';
 
-type Panel = 'edit' | 'language' | 'export' | 'privacy' | 'blocked' | 'help' | 'about' | 'signout' | null;
+type Panel = 'edit' | 'language' | 'export' | 'privacy' | 'blocked' | 'help' | 'about' | 'signout' | 'delete' | null;
 export function ProfileScreen({
   book,
   isDemo,
@@ -56,7 +58,7 @@ export function ProfileScreen({
           <Text accessibilityRole="header" style={ui.title}>
             {t('profile.title')}
           </Text>
-          {isDemo ? <IconButton name="edit" label={t('profile.edit')} onPress={() => open('edit')} /> : null}
+          {isDemo ? <IconButton name="edit" label={t('profile.edit')} onPress={() => open('edit')} testID="profile-edit" /> : null}
         </View>
         <View style={{ alignItems: 'center', paddingVertical: 14, gap: 10 }}>
           <View
@@ -112,9 +114,9 @@ export function ProfileScreen({
         </View>
         <View style={{ padding: 20, backgroundColor: colors.sage, borderRadius: 20, gap: 10 }}>
           <View style={ui.between}>
-            <View style={ui.row}>
+            <View style={[ui.row, { flex: 1 }]}>
               <Icon name="globe" size={20} color={colors.success} />
-              <Text style={[ui.body, { fontWeight: '700' }]}>{t('profile.publicMap')}</Text>
+              <Text style={[ui.body, { fontWeight: '700', flex: 1 }]}>{t('profile.publicMap')}</Text>
             </View>
             <Switch
               accessibilityLabel={t('profile.publicMap')}
@@ -159,19 +161,21 @@ export function ProfileScreen({
           {onSignOut ? (
             <SettingRow icon="logout" label={t('auth.signOut')} onPress={() => open('signout')} />
           ) : null}
+          <SettingRow icon="trash" label={t('deletion.title')} onPress={() => open('delete')} />
         </View>
         <Text style={[ui.muted, { textAlign: 'center', fontSize: 11 }]}>
           LiveToEat · {t('profile.footer')}
         </Text>
       </ScrollView>
       {panel === 'edit' ? <ProfileEditor book={book} onClose={() => setPanel(null)} /> : null}
-      {panel && panel !== 'edit' ? (
+      {panel === 'delete' ? <DeleteAccountSheet onClose={() => setPanel(null)} onExport={() => setPanel('export')} /> : null}
+      {panel === 'signout' && onSignOut ? <SignOutSheet onClose={() => setPanel(null)} onSignOut={onSignOut} /> : null}
+      {panel && panel !== 'edit' && panel !== 'delete' && panel !== 'signout' ? (
         <ProfilePanel
           panel={panel}
           book={book}
           isDemo={isDemo}
           onClose={() => setPanel(null)}
-          onSignOut={onSignOut}
         />
       ) : null}
     </>
@@ -222,15 +226,18 @@ function ProfileEditor({ book, onClose }: { book: NotebookController; onClose: (
   const { t } = useTranslation();
   const [name, setName] = useState(book.state.profile.displayName);
   const [bio, setBio] = useState(book.state.profile.bio);
+  const bioInput = useRef<TextInput>(null);
   return (
     <Sheet
       title={t('profile.edit')}
       onClose={onClose}
+      unsavedChanges={name !== book.state.profile.displayName || bio !== book.state.profile.bio}
       footer={
         <Action
           label={t('editor.save')}
           disabled={!name.trim()}
           onPress={() => {
+            Keyboard.dismiss();
             book.update((b) => ({
               ...b,
               profile: { ...b.profile, displayName: name.trim(), bio: bio.trim() },
@@ -240,8 +247,9 @@ function ProfileEditor({ book, onClose }: { book: NotebookController; onClose: (
         />
       }
     >
-      <Field label={t('auth.displayName')} value={name} onChangeText={setName} maxLength={60} />
-      <Field label={t('profile.bio')} value={bio} onChangeText={setBio} maxLength={280} multiline />
+      <Field label={t('auth.displayName')} testID="profile-name" value={name} onChangeText={setName} maxLength={60}
+        returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => bioInput.current?.focus()} />
+      <Field label={t('profile.bio')} testID="profile-bio" inputRef={bioInput} value={bio} onChangeText={setBio} maxLength={280} multiline />
       <Text style={ui.muted}>{t('profile.editHint')}</Text>
     </Sheet>
   );
@@ -252,13 +260,11 @@ function ProfilePanel({
   book,
   isDemo,
   onClose,
-  onSignOut,
 }: {
-  panel: Exclude<Panel, 'edit' | null>;
+  panel: Exclude<Panel, 'edit' | 'delete' | 'signout' | null>;
   book: NotebookController;
   isDemo: boolean;
   onClose: () => void;
-  onSignOut: (() => Promise<void>) | undefined;
 }) {
   const { t, i18n } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -402,19 +408,6 @@ function ProfilePanel({
           <Text style={ui.body}>{t('profile.aboutBody')}</Text>
           <Text style={ui.muted}>{t('profile.version')}</Text>
           <Text style={ui.muted}>{t('profile.artwork')}</Text>
-        </>
-      ) : null}
-      {panel === 'signout' ? (
-        <>
-          <Text style={ui.body}>{t('profile.signoutHint')}</Text>
-          <Action
-            danger
-            label={t('auth.signOut')}
-            onPress={() => {
-              void onSignOut?.();
-            }}
-          />
-          <Action secondary label={t('common.cancel')} onPress={onClose} />
         </>
       ) : null}
     </Sheet>

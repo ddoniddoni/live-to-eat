@@ -1,0 +1,62 @@
+appId: ${APP_ID}
+name: Keep and discard profile edits with keyboard and Android back
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: welcome-start
+    commands:
+      - tapOn:
+          id: welcome-start
+- tapOn:
+    id: tab-profile
+- tapOn:
+    id: profile-edit
+- tapOn:
+    id: profile-name
+    point: "95%,50%"
+- eraseText
+- inputText: Unsaved QA
+- pressKey: Enter
+- inputText: Focus moved to bio
+- assertVisible:
+    id: profile-bio
+    text: .*Focus moved to bio.*
+- hideKeyboard
+- tapOn:
+    id: sheet-close
+- assertVisible:
+    id: draft-discard
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+      - assertVisible:
+          id: profile-name
+      - assertVisible: Unsaved QA
+      - tapOn:
+          id: sheet-close
+- tapOn:
+    id: draft-keep
+- assertVisible: Unsaved QA
+- tapOn:
+    id: sheet-close
+- tapOn:
+    id: draft-discard
+- assertNotVisible: Unsaved QA
+- tapOn:
+    id: profile-edit
+- assertNotVisible: Unsaved QA
+- assertNotVisible: .*Focus moved to bio.*
+- tapOn:
+    id: sheet-close
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+      - assertVisible:
+          id: tab-map
+          selected: true

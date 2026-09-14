@@ -23,6 +23,7 @@ export function PlaceCard({
   return (
     <Pressable
       accessibilityRole={selected === undefined ? 'button' : 'checkbox'}
+      testID={`saved-place-${place.savedId}`}
       accessibilityState={selected === undefined ? {} : { checked: selected }}
       onPress={onSelect ? () => onSelect(place) : onPress}
       style={({ pressed }) => ({
@@ -36,15 +37,15 @@ export function PlaceCard({
       })}
     >
       <FoodArtwork kind={artKind(place)} size={76} />
-      <View style={{ flex: 1, gap: 5 }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 5 }}>
         <Text style={[ui.body, { fontWeight: '700', fontSize: 16 }]}>{place.displayName}</Text>
-        <Text numberOfLines={1} style={ui.muted}>
+        <Text style={ui.muted}>
           {subtitle ??
             [place.regionPath.at(-1)?.label ?? t('map.unclassified'), place.tags[0]]
               .filter(Boolean)
               .join(' · ')}
         </Text>
-        <View style={[ui.row, { gap: 6 }]}>
+        <View style={[ui.row, { gap: 6, flexWrap: 'wrap' }]}>
           <View
             style={{
               backgroundColor: place.visitStatus === 'visited' ? colors.sage : colors.blush,

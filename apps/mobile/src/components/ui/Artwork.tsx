@@ -13,7 +13,8 @@ export function FoodArtwork({ kind = 0, size = 82 }: { kind?: number; size?: num
         backgroundColor: palette[kind % 4],
       }}
     >
-      <Svg width="100%" height="100%" viewBox="0 0 100 100" aria-hidden={true}>
+      <Svg width="100%" height="100%" viewBox="0 0 100 100" aria-hidden={true}
+        accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {kind % 4 === 1 ? (
           <G>
             <Ellipse cx="50" cy="77" rx="31" ry="7" fill="#B7C9AB" />
@@ -68,6 +69,9 @@ export function MapArtwork() {
       viewBox="0 0 360 190"
       preserveAspectRatio="xMidYMid slice"
       aria-hidden={true}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
     >
       <Rect width="360" height="190" fill="#E9EEE5" />
       <Path d="m-20 166 400-51" stroke="#D0E2E9" strokeWidth="30" />

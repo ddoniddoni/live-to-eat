@@ -33,6 +33,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
   };
 
   const submit = (): void => {
+    if (auth.busy) return;
     if (password.length < 8) {
       setLocalError('passwordTooShort');
       return;
@@ -55,7 +56,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
         <ScrollView
-          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -92,11 +93,13 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
                     autoCapitalize="none"
                     autoComplete="new-password"
                     autoCorrect={false}
+                    editable={!auth.busy}
                     onChangeText={(value) => {
                       clearFeedback();
                       setPassword(value);
                     }}
                     onSubmitEditing={() => confirmationRef.current?.focus()}
+                    submitBehavior="submit"
                     placeholder={t('auth.newPasswordPlaceholder')}
                     placeholderTextColor={colors.muted}
                     returnKeyType="next"
@@ -125,6 +128,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
                     autoCapitalize="none"
                     autoComplete="new-password"
                     autoCorrect={false}
+                    editable={!auth.busy}
                     onChangeText={(value) => {
                       clearFeedback();
                       setConfirmation(value);

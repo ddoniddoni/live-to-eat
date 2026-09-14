@@ -19,15 +19,7 @@ import { colors, radii, spacing, type } from '@/components/tokens';
 import { FoodArtwork, MapArtwork } from '@/components/ui/Artwork';
 import { Icon } from '@/components/ui/Icon';
 import type { AuthSessionController } from '@/features/auth/useAuthSession';
-
-type AuthMode = 'forgot-password' | 'sign-in' | 'sign-up';
-type FormErrorKey =
-  | 'auth.formErrors.email'
-  | 'auth.formErrors.password'
-  | 'auth.formErrors.passwordMismatch'
-  | 'auth.formErrors.passwordTooShort';
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { validateCredentials, type AuthMode, type FormErrorKey } from './authForm';
 
 const copyKeys = {
   'forgot-password': {
@@ -202,29 +194,18 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
   };
 
   const submit = (): void => {
+    if (auth.busy) return;
     const normalizedEmail = email.trim().toLowerCase();
-    if (!emailPattern.test(normalizedEmail)) {
-      setLocalError('auth.formErrors.email');
+    const validationError = validateCredentials(mode, normalizedEmail, password, passwordConfirmation);
+    if (validationError) {
+      setLocalError(validationError);
       return;
     }
     if (mode === 'forgot-password') {
       void auth.requestPasswordReset(normalizedEmail);
       return;
     }
-    if (!password) {
-      setLocalError('auth.formErrors.password');
-      return;
-    }
-
     if (mode === 'sign-up') {
-      if (password.length < 8) {
-        setLocalError('auth.formErrors.passwordTooShort');
-        return;
-      }
-      if (password !== passwordConfirmation) {
-        setLocalError('auth.formErrors.passwordMismatch');
-        return;
-      }
       void auth.signUpWithEmail({ email: normalizedEmail, password });
       return;
     }
@@ -233,6 +214,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
   };
 
   const switchMode = (nextMode: AuthMode): void => {
+    if (auth.busy) return;
     auth.clearError();
     setLocalError(null);
     setPassword('');
@@ -253,7 +235,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
         <ScrollView
-          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -272,6 +254,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
 
             <View style={styles.form}>
               <AuthField
+                editable={!auth.busy}
                 autoCapitalize="none"
                 autoComplete="email"
                 autoCorrect={false}
@@ -284,11 +267,13 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
                 }}
                 placeholder={t('auth.emailPlaceholder')}
                 returnKeyType={mode === 'forgot-password' ? 'done' : 'next'}
+                submitBehavior={mode === 'forgot-password' ? 'blurAndSubmit' : 'submit'}
                 textContentType="emailAddress"
                 value={email}
               />
               {mode !== 'forgot-password' ? (
                 <AuthField
+                  editable={!auth.busy}
                   autoCapitalize="none"
                   autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
                   autoCorrect={false}
@@ -299,6 +284,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
                   placeholder={t('auth.passwordPlaceholder')}
                   inputRef={passwordRef}
                   returnKeyType={mode === 'sign-in' ? 'done' : 'next'}
+                  submitBehavior={mode === 'sign-in' ? 'blurAndSubmit' : 'submit'}
                   secureTextEntry={!passwordVisible}
                   secureVisible={passwordVisible}
                   textContentType={mode === 'sign-in' ? 'password' : 'newPassword'}
@@ -308,6 +294,8 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
               {mode === 'sign-in' ? (
                 <Pressable
                   accessibilityRole="button"
+                  accessibilityState={{ disabled: auth.busy }}
+                  disabled={auth.busy}
                   hitSlop={8}
                   onPress={() => switchMode('forgot-password')}
                   style={({ pressed }) => [styles.forgotButton, pressed ? styles.pressed : null]}
@@ -318,6 +306,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
               {mode === 'sign-up' ? (
                 <>
                   <AuthField
+                    editable={!auth.busy}
                     autoCapitalize="none"
                     autoComplete="new-password"
                     autoCorrect={false}
@@ -362,6 +351,8 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
               ) : null}
               <Pressable
                 accessibilityRole="button"
+                accessibilityState={{ disabled: auth.busy }}
+                disabled={auth.busy}
                 hitSlop={8}
                 onPress={() => switchMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
                 style={({ pressed }) => (pressed ? styles.pressed : null)}
@@ -476,7 +467,8 @@ const styles = StyleSheet.create({
   },
   forgotButton: {
     alignSelf: 'flex-end',
-    marginTop: -6,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 4,
   },
   forgotButtonText: {
@@ -670,10 +662,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     minHeight: 56,
-    shadowColor: colors.tomato,
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 14,
+    boxShadow: '0 8px 14px rgba(200, 64, 50, 0.2)',
   },
   submitButtonPressed: {
     opacity: 0.84,

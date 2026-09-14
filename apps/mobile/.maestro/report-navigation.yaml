@@ -1,0 +1,66 @@
+appId: ${APP_ID}
+name: Preserve a report reason while going back and discard on request
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: welcome-start
+    commands:
+      - tapOn:
+          id: welcome-start
+- tapOn:
+    id: tab-discover
+- scrollUntilVisible:
+    element: 수진의 지도
+    direction: DOWN
+- tapOn: 수진의 지도
+- scrollUntilVisible:
+    element: 이 프로필 신고
+    direction: DOWN
+- tapOn: 이 프로필 신고
+- scrollUntilVisible:
+    element: 스팸 또는 반복 광고
+    direction: DOWN
+- tapOn: 스팸 또는 반복 광고
+- tapOn: 신고 내용 확인
+- assertVisible: 보내기 전에 살펴봐요
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn: 내용 수정
+- assertVisible: 어떤 문제가 있었나요?
+- scrollUntilVisible:
+    element: 스팸 또는 반복 광고
+    direction: DOWN
+- assertVisible:
+    text: 스팸 또는 반복 광고
+    checked: true
+- tapOn:
+    id: sheet-close
+- assertVisible:
+    id: draft-discard
+- tapOn:
+    id: draft-keep
+- scrollUntilVisible:
+    element: 스팸 또는 반복 광고
+    direction: DOWN
+- assertVisible:
+    text: 스팸 또는 반복 광고
+    checked: true
+- tapOn:
+    id: sheet-close
+- tapOn:
+    id: draft-discard
+- assertNotVisible: 신고 내용 확인
+- tapOn:
+    id: sheet-close
+- assertVisible:
+    id: tab-discover
+    selected: true
