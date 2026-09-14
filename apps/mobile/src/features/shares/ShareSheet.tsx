@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Keyboard, Pressable, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { inRegion, makeShareDraft, type ShareDraft } from '@live-to-eat/domain';
+import { buildRegionOptions, inRegion, makeShareDraft, type ShareDraft } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { Sheet } from '@/components/ui/Sheet';
 import { Action, Chip, Empty, Field, Notice, ui } from '@/components/ui/primitives';
@@ -9,6 +9,8 @@ import { Icon } from '@/components/ui/Icon';
 import { MapArtwork } from '@/components/ui/Artwork';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { PlaceCard } from '@/features/notebook/PlaceCard';
+import { RegionButton } from '@/features/regions/RegionButton';
+import { RegionPickerSheet } from '@/features/regions/RegionPickerSheet';
 
 type Props = {
   book: NotebookController;
@@ -21,25 +23,25 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
   const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [region, setRegion] = useState(initialRegion);
+  const [choosingRegion, setChoosingRegion] = useState(false);
   const [ids, setIds] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [days, setDays] = useState(7);
   const [consent, setConsent] = useState(false);
   const [showAuthor, setShowAuthor] = useState(true);
   const [error, setError] = useState(false);
-  const regions = [
-    ...new Map(book.state.places.flatMap((p) => p.regionPath.map((r) => [r.id, r] as const))).values(),
-  ];
+  const regions = useMemo(() => buildRegionOptions(book.state.places), [book.state.places]);
   const regionPlaces = book.state.places.filter((p) => inRegion(p, region));
   const selectedIds = new Set(ids);
   const selected = regionPlaces.filter((p) => selectedIds.has(p.savedId));
   const privateCount = selected.filter((p) => p.visibility === 'private').length;
   const regionTitle =
     region === 'all'
-      ? t('notebook.allRegions')
+      ? t('regions.allSaved')
       : region === 'unclassified'
         ? t('map.unclassified')
-        : (regions.find((r) => r.id === region)?.label ?? '');
+        : (regions.find((r) => r.id === region)?.path.map((p) => p.label).join(' · ') ?? t('regions.unknown'));
+  const regionPlaceCountLabel = t('regions.placeCount', { count: regionPlaces.length });
   const create = () => {
     try {
       const now = Date.now();
@@ -59,17 +61,27 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
       setError(true);
     }
   };
+  if (choosingRegion) return <RegionPickerSheet places={book.state.places} value={region} hint={t('regions.savedHint')}
+    onClose={() => setChoosingRegion(false)} onSelect={(id) => {
+      if (id !== region) { setRegion(id); setIds([]); setConsent(false); setError(false); }
+      setChoosingRegion(false);
+    }} />;
   return (
     <Sheet
+      testID="share-editor"
+      contentKey={step}
       title={t('sharing.create')}
       subtitle={t('sharing.draftHint')}
       onClose={onClose}
+      unsavedChanges={ids.length > 0 || title.length > 0 || days !== 7 || !showAuthor || region !== initialRegion}
+      {...(step > 0 ? { onBack: () => setStep((s) => s - 1) } : {})}
       footer={
         step === 2 ? (
           <>
             {!isDemo ? <Notice>{t('sharing.connectionRequired')}</Notice> : null}
             <Action
               label={t('sharing.saveDraft')}
+              testID="share-save"
               onPress={create}
               disabled={!isDemo || !selected.length || (privateCount > 0 && !consent)}
             />
@@ -78,8 +90,9 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
         ) : (
           <Action
             label={t(step === 0 ? 'sharing.selectPlaces' : 'sharing.preview')}
-            onPress={() => setStep((s) => s + 1)}
-            disabled={step === 1 && selected.length === 0}
+            onPress={() => { Keyboard.dismiss(); setStep((s) => s + 1); }}
+            testID="share-next"
+            disabled={regionPlaces.length === 0 || (step === 1 && selected.length === 0)}
             icon="arrow"
           />
         )
@@ -111,53 +124,34 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
         <>
           <Text style={ui.title}>{t('sharing.regionTitle')}</Text>
           <Text style={ui.muted}>{t('sharing.regionHint')}</Text>
-          <Chip
-            label={t('notebook.allRegions')}
-            selected={region === 'all'}
-            onPress={() => {
-              setRegion('all');
-              setIds([]);
-            }}
-          />
-          {regions.map((r) => (
-            <Chip
-              key={r.id}
-              label={r.label}
-              selected={region === r.id}
-              onPress={() => {
-                setRegion(r.id);
-                setIds([]);
-              }}
-            />
-          ))}
-          <Chip
-            label={t('map.unclassified')}
-            selected={region === 'unclassified'}
-            onPress={() => {
-              setRegion('unclassified');
-              setIds([]);
-            }}
-          />
+          <View style={{ backgroundColor: colors.sage, padding: 18, borderRadius: 18, gap: 8 }}>
+            <RegionButton label={regionTitle} onPress={() => setChoosingRegion(true)} />
+            <Text style={ui.muted}>{regionPlaceCountLabel}</Text>
+          </View>
+          <Text style={ui.muted}>{t('sharing.regionSelectionHint')}</Text>
+          {!regionPlaces.length ? <Empty title={t('sharing.empty')} body={t('sharing.emptyHint')} /> : null}
         </>
       ) : null}
       {step === 1 ? (
         <>
           <View style={ui.between}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={ui.heading}>{regionTitle}</Text>
               <Text style={ui.muted}>{t('sharing.selected', { count: selected.length })}</Text>
             </View>
             <Pressable
               accessibilityRole="button"
-              onPress={() =>
+              testID="share-select-all"
+              onPress={() => {
+                setConsent(false);
                 setIds(
-                  ids.length === regionPlaces.length ? [] : regionPlaces.slice(0, 200).map((p) => p.savedId),
-                )
-              }
+                  selected.length === Math.min(regionPlaces.length, 200) ? [] : regionPlaces.slice(0, 200).map((p) => p.savedId),
+                );
+              }}
               style={{ padding: 12, minHeight: 44 }}
             >
               <Text style={{ color: colors.tomato, fontSize: 13, fontWeight: '700' }}>
-                {t(ids.length === regionPlaces.length ? 'sharing.deselectAll' : 'sharing.selectAll')}
+                {t(selected.length === Math.min(regionPlaces.length, 200) ? 'sharing.deselectAll' : 'sharing.selectAll')}
               </Text>
             </Pressable>
           </View>
@@ -168,15 +162,16 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
                 key={p.savedId}
                 place={p}
                 selected={selectedIds.has(p.savedId)}
-                onPress={() =>
+                onPress={() => {
+                  setConsent(false);
                   setIds((current) =>
                     selectedIds.has(p.savedId)
                       ? current.filter((id) => id !== p.savedId)
                       : current.length < 200
                         ? [...current, p.savedId]
                         : current,
-                  )
-                }
+                  );
+                }}
               />
             ))}
           </View>
@@ -188,6 +183,9 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
         <>
           <Field
             label={t('sharing.name')}
+            testID="share-name"
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
             value={title}
             onChangeText={setTitle}
             maxLength={80}
@@ -225,7 +223,7 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
           </View>
           <View>
             <Text style={ui.label}>{t('sharing.expiry')}</Text>
-            <View style={ui.row}>
+            <View style={[ui.row, { flexWrap: 'wrap' }]}>
               {[1, 7, 30].map((day) => (
                 <Chip
                   key={day}
@@ -248,6 +246,7 @@ export function ShareSheet({ book, initialRegion, isDemo, onClose, onCreated }: 
           {privateCount > 0 ? (
             <Pressable
               accessibilityRole="checkbox"
+              testID="share-consent"
               accessibilityState={{ checked: consent }}
               onPress={() => setConsent((v) => !v)}
               style={[

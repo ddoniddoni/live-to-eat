@@ -152,11 +152,13 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
         closeLabel={t('placeSearch.close')}
         eyebrow={t('placeSearch.eyebrow')}
         onDismiss={close}
+        busy={isSaving || isSearching}
+        unsavedChanges={note.length > 0 || tags.length > 0 || visitStatus !== 'want' || selectedCollectionId !== null || newCollectionName.length > 0}
         title={selected ? t('placeSearch.confirmTitle') : t('placeSearch.title')}
         visible={visible}
       >
           {selected ? (
-            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
               <View style={styles.selectedPlace}>
                 <Text style={styles.selectedName}>{selected.displayName}</Text>
                 <Text style={styles.selectedAddress}>{selected.address}</Text>
@@ -170,7 +172,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
                   return (
                     <Pressable
                       accessibilityRole="radio"
-                      accessibilityState={{ selected: selectedStatus }}
+                      accessibilityState={{ checked: selectedStatus }}
                       key={option}
                       onPress={() => setVisitStatus(option)}
                       style={[styles.segment, selectedStatus ? styles.segmentSelected : null]}
@@ -185,6 +187,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
 
               <Text style={styles.label}>{t('placeSearch.note')}</Text>
               <TextInput
+                accessibilityLabel={t('placeSearch.note')}
                 maxLength={2000}
                 multiline
                 onChangeText={setNote}
@@ -197,6 +200,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
 
               <Text style={styles.label}>{t('placeSearch.tags')}</Text>
               <TextInput
+                accessibilityLabel={t('placeSearch.tags')}
                 autoCapitalize="none"
                 maxLength={1_200}
                 onChangeText={setTags}
@@ -245,6 +249,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
               {isCreatingCollection ? (
                 <View style={styles.collectionCreateRow}>
                   <TextInput
+                    accessibilityLabel={t('placeSearch.newCollection')}
                     autoFocus
                     maxLength={120}
                     onChangeText={setNewCollectionName}
@@ -313,6 +318,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
                   <Text style={styles.description}>{t('placeSearch.description')}</Text>
                   <View style={styles.searchRow}>
                     <TextInput
+                      accessibilityLabel={t('placeSearch.placeholder')}
                       autoCapitalize="words"
                       autoFocus
                       onChangeText={setQuery}

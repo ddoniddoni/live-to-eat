@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { inRegion, type NotebookPlace } from '@live-to-eat/domain';
+import { buildRegionOptions, inRegion, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { MapArtwork } from '@/components/ui/Artwork';
 import { Action, Chip, Empty, IconButton, Notice, ui } from '@/components/ui/primitives';
-import { Sheet } from '@/components/ui/Sheet';
+import { RegionButton } from '@/features/regions/RegionButton';
+import { RegionPickerSheet } from '@/features/regions/RegionPickerSheet';
 import { PlaceCard } from '@/features/notebook/PlaceCard';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { MapCanvas } from './MapCanvas';
@@ -14,14 +15,15 @@ import { MapCanvas } from './MapCanvas';
 type Props = {
   book: NotebookController;
   isDemo: boolean;
+  region: string;
+  onRegionChange: (region: string) => void;
   onAdd: () => void;
   onPlace: (place: NotebookPlace) => void;
   onShare: (region: string) => void;
   onFolders: () => void;
 };
-export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }: Props) {
+export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPlace, onShare, onFolders }: Props) {
   const { t } = useTranslation();
-  const [region, setRegion] = useState('all');
   const [status, setStatus] = useState('all');
   const [folder, setFolder] = useState('all');
   const [query, setQuery] = useState('');
@@ -29,9 +31,7 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
   const [regionOpen, setRegionOpen] = useState(false);
   const [sort, setSort] = useState<'recent' | 'name'>('recent');
   const regions = useMemo(
-    () => [
-      ...new Map(book.state.places.flatMap((p) => p.regionPath.map((r) => [r.id, r] as const))).values(),
-    ],
+    () => buildRegionOptions(book.state.places),
     [book.state.places],
   );
   const filtered = useMemo(() => {
@@ -48,10 +48,12 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
   }, [book.state.places, region, status, folder, query, sort]);
   const regionLabel =
     region === 'all'
-      ? t('notebook.allRegions')
+      ? t('regions.allSaved')
       : region === 'unclassified'
         ? t('map.unclassified')
-        : (regions.find((r) => r.id === region)?.label ?? t('notebook.allRegions'));
+        : (regions.find((r) => r.id === region)?.path.slice(1).map((p) => p.label).join(' · ') || regions.find((r) => r.id === region)?.label || t('regions.unknown'));
+  const hasFilters = region !== 'all' || status !== 'all' || folder !== 'all' || query.trim().length > 0;
+  const clearFilters = () => { onRegionChange('all'); setStatus('all'); setFolder('all'); setQuery(''); };
   const renderPlace = useCallback(({ item }: { item: NotebookPlace }) => <PlaceCard place={item} onSelect={onPlace} />, [onPlace]);
   return (
     <View style={{ flex: 1 }}>
@@ -66,8 +68,8 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
         ListHeaderComponent={
           <>
             <View style={[ui.between, { paddingTop: 12 }]}>
-              <View style={ui.row}>
-                <Text style={{ color: colors.tomato, fontSize: 23, fontWeight: '800', letterSpacing: -1.3 }}>
+              <View style={[ui.row, { flex: 1, flexWrap: 'wrap' }]}>
+                <Text style={{ color: colors.tomato, fontSize: 23, fontWeight: '800', letterSpacing: -1.3, flexShrink: 1 }}>
                   LiveToEat<Text style={{ color: colors.ink }}> ·</Text>
                 </Text>
                 {isDemo ? (
@@ -85,7 +87,7 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
                   </Text>
                 ) : null}
               </View>
-              <IconButton name="share" label={t('sharing.create')} onPress={() => onShare(region)} />
+              <IconButton name="share" label={t('sharing.create')} onPress={() => onShare(region)} testID="create-share" />
             </View>
             <View style={{ marginTop: 22, marginBottom: 20, gap: 5 }}>
               <Text accessibilityRole="header" style={ui.title}>
@@ -94,15 +96,7 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
               <Text style={ui.muted}>{t('notebook.subtitle', { count: book.total })}</Text>
             </View>
             <View style={[ui.between, { marginBottom: 16 }]}>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => setRegionOpen(true)}
-                style={[ui.row, { minHeight: 44 }]}
-              >
-                <Icon name="pin" size={17} color={colors.tomato} />
-                <Text style={[ui.body, { fontWeight: '600' }]}>{regionLabel}</Text>
-                <Icon name="chevron" size={13} />
-              </Pressable>
+              <RegionButton label={regionLabel} onPress={() => setRegionOpen(true)} />
               <View
                 style={{ flexDirection: 'row', backgroundColor: colors.sage, borderRadius: 12, padding: 3 }}
               >
@@ -115,7 +109,7 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
                     onPress={() => setMode(item)}
                     style={{
                       minWidth: 44,
-                      minHeight: 38,
+                      minHeight: 44,
                       backgroundColor: mode === item ? colors.paper : 'transparent',
                       borderRadius: 9,
                       alignItems: 'center',
@@ -294,47 +288,16 @@ export function MyMapScreen({ book, isDemo, onAdd, onPlace, onShare, onFolders }
         ListEmptyComponent={
           mode === 'list' && !book.loading ? (
             <Empty
-              title={t('notebook.emptyTitle')}
-              body={t('notebook.emptyBody')}
-              action={<Action label={t('map.addPlace')} onPress={onAdd} icon="plus" />}
+              title={t(hasFilters ? 'notebook.filteredEmptyTitle' : 'notebook.emptyTitle')}
+              body={t(hasFilters ? 'notebook.filteredEmptyBody' : 'notebook.emptyBody')}
+              action={hasFilters ? <Action secondary label={t('notebook.clearFilters')} onPress={clearFilters} /> : <Action label={t('map.addPlace')} onPress={onAdd} icon="plus" />}
             />
           ) : null
         }
       />
       {regionOpen ? (
-        <Sheet
-          title={t('notebook.chooseRegion')}
-          subtitle={t('notebook.regionHint')}
-          onClose={() => setRegionOpen(false)}
-        >
-          <Chip
-            selected={region === 'all'}
-            label={t('notebook.allRegions')}
-            onPress={() => {
-              setRegion('all');
-              setRegionOpen(false);
-            }}
-          />
-          {regions.map((r) => (
-            <Chip
-              key={r.id}
-              selected={region === r.id}
-              label={r.label}
-              onPress={() => {
-                setRegion(r.id);
-                setRegionOpen(false);
-              }}
-            />
-          ))}
-          <Chip
-            selected={region === 'unclassified'}
-            label={t('map.unclassified')}
-            onPress={() => {
-              setRegion('unclassified');
-              setRegionOpen(false);
-            }}
-          />
-        </Sheet>
+        <RegionPickerSheet places={book.state.places} value={region} hint={t('regions.savedHint')}
+          onClose={() => setRegionOpen(false)} onSelect={(id) => { onRegionChange(id); setRegionOpen(false); }} />
       ) : null}
     </View>
   );

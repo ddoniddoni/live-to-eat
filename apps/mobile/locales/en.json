@@ -44,7 +44,7 @@
     "addPlace": "Save a place",
     "want": "Want to go",
     "visited": "Visited",
-    "locationNote": "Location is optional. Start with any country or city.",
+    "locationNote": "Search by region and place name without location permission.",
     "signOut": "Sign out",
     "preview": "preview",
     "previewNotice": "Preview mode is on. Sign-in, saved data, and Supabase calls are disabled on this device."
@@ -57,7 +57,7 @@
     "description": "Search by a place or area, confirm the result, then save it privately to your map.",
     "placeholder": "For example, pasta in Seongsu",
     "search": "Search",
-    "globalScope": "Search worldwide. Try adding a city or country to your search.",
+    "globalScope": "Check the branch and address in each result.",
     "queryHint": "Enter at least two characters.",
     "searchError": "Couldn’t search places. Check your connection and try again.",
     "results": "Results",
@@ -152,7 +152,9 @@
     "copyBoundary": "Private records stay private",
     "copyToMap": "Save to my map",
     "copied": "Saved",
-    "copyError": "We could not save this to your map. Its public visibility may have changed."
+    "copyError": "We could not save this to your map. Its public visibility may have changed.",
+    "regionHint": "Find people with public places in this region.",
+    "regionPlaceCount": "{{count}} public places in this region"
   },
   "auth": {
     "launchTitle": "Bringing back your best bites",
@@ -395,7 +397,10 @@
     "chooseRegion": "Choose a region",
     "regionHint": "A country or region includes the areas within it.",
     "subtitle_one": "{{count}} place for your next memorable meal",
-    "subtitle_other": "{{count}} places for your next memorable meal"
+    "subtitle_other": "{{count}} places for your next memorable meal",
+    "filteredEmptyTitle": "No saves match these filters",
+    "filteredEmptyBody": "Change the region or filters to see your other saved places.",
+    "clearFilters": "Show all my saves"
   },
   "editor": {
     "title": "Your place notes",
@@ -421,12 +426,15 @@
     "deleteConfirm": "Delete place"
   },
   "search": {
-    "demoHint": "Try searching and saving fictional sample places.",
-    "scope": "Worldwide · Try adding a city to your search",
+    "demoHint": "Korean sample places · Live place search is not connected.",
     "try": "Try searching for",
     "samples": "Sample places to explore",
     "empty": "No matching sample places",
-    "emptyHint": "Try a different place, category, or city."
+    "emptyHint": "Try a different query or a broader region.",
+    "scopeNationwide": "Search sample places across South Korea.",
+    "scopeRegion": "Search within {{region}} and its subregions.",
+    "queryResults": "Results for “{{query}}”",
+    "tryNationwide": "Search nationwide with this query"
   },
   "explore": {
     "title": "Good people.\nGreat places.",
@@ -434,7 +442,6 @@
     "search": "Search names, handles, or bios",
     "all": "Everywhere",
     "seoul": "Seoul",
-    "tokyo": "Tokyo",
     "maps": "Maps with a point of view",
     "personMap": "’s map",
     "publicMap": "Public map",
@@ -489,7 +496,8 @@
     "placeCount_one": "{{count}} place",
     "placeCount_other": "{{count}} places",
     "days_one": "{{count}} day",
-    "days_other": "{{count}} days"
+    "days_other": "{{count}} days",
+    "regionSelectionHint": "A broader region includes saves in its subregions. Changing regions clears the selected places and sharing consent."
   },
   "profile": {
     "title": "Profile",
@@ -559,5 +567,35 @@
     "share": "Choose exactly which places to share",
     "demo": "Explore with fictional sample places. Your records stay on this device, without connecting to real accounts or map services.",
     "start": "Start my map"
+  },
+  "draft": {
+    "discardTitle": "Discard your changes?",
+    "discardBody": "Your changes have not been saved. Keep editing to continue, or discard them to close.",
+    "keepEditing": "Keep editing",
+    "discard": "Discard changes"
+  },
+  "regions": {
+    "title": "Choose a region",
+    "eyebrow": "A region for your next meal",
+    "nationwide": "Nationwide",
+    "allSaved": "All saved regions",
+    "unknown": "Selected region",
+    "change": "Change region · {{region}}",
+    "apply": "Apply {{region}}",
+    "open": "Explore the region {{region}}",
+    "find": "Find a region",
+    "placeholder": "Try 부산, 수영구, or 서귀포",
+    "results": "Matching regions",
+    "placeCount": "{{count}} places",
+    "placeCount_one": "{{count}} place",
+    "placeCount_other": "{{count}} places",
+    "noResults": "No matching regions",
+    "noResultsHint": "Try another name or a broader region.",
+    "ready": "Explore this region?",
+    "readyHint": "Apply your selection below, or return to a broader region.",
+    "catalogHint": "Sample regions linked to fictional places in South Korea.",
+    "savedHint": "Regions and subregions of your currently loaded saves.",
+    "publicHint": "Regions with public sample places are shown.",
+    "showNationwide": "Explore nationwide"
   }
 }

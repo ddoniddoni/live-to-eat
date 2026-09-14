@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+.maestro/tests/
 .expo/
 .firebase/
 .DS_Store

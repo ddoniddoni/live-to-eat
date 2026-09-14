@@ -1,17 +1,20 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { copyAsPrivate, type NotebookPlace } from '@live-to-eat/domain';
+import { buildRegionOptions, copyAsPrivate, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { FoodArtwork } from '@/components/ui/Artwork';
 import { Icon } from '@/components/ui/Icon';
-import { Action, Chip, Empty, Notice, ui } from '@/components/ui/primitives';
+import { Action, Empty, Notice, ui } from '@/components/ui/primitives';
 import { Sheet } from '@/components/ui/Sheet';
 import { demoCatalog, demoPeople } from '@/features/notebook/demoData';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { ReportSheet } from '@/features/safety/ReportSheet';
 import type { ReportTarget } from '@/features/safety/reportForm';
+import { RegionButton } from '@/features/regions/RegionButton';
+import { RegionPickerSheet } from '@/features/regions/RegionPickerSheet';
+import { publicPlacesInRegion } from './discoverRegions';
 import {
   copyPublicPlace,
   loadDiscoverablePublicMaps,
@@ -23,15 +26,19 @@ type Person = PublicMapSummary & { regionLabel?: string; region?: string; theme?
 export function DiscoverScreen({
   book,
   isDemo,
+  region,
+  onRegionChange,
   onSaved,
 }: {
   book: NotebookController;
   isDemo: boolean;
+  region: string;
+  onRegionChange: (region: string) => void;
   onSaved: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const [query, setQuery] = useState('');
-  const [region, setRegion] = useState('all');
+  const [choosingRegion, setChoosingRegion] = useState(false);
   const [selected, setSelected] = useState<Person | null>(null);
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
   const language = i18n.language.startsWith('ko') ? 'ko' : 'en';
@@ -41,15 +48,22 @@ export function DiscoverScreen({
     enabled: !isDemo,
   });
   const people: Person[] = isDemo
-    ? demoPeople.map((p) => ({ ...p, publicPlaceCount: p.ids.length }))
+    ? demoPeople.map((p) => ({ ...p, publicPlaceCount: publicPlacesInRegion(demoCatalog, p.ids, region).length }))
     : (maps.data ?? []);
   const blockedHandles = new Set(book.state.blockedHandles);
   const visible = people.filter(
     (p) =>
       !blockedHandles.has(p.handle) &&
-      (region === 'all' || p.region === region) &&
+      p.publicPlaceCount > 0 &&
       `${p.displayName} ${p.handle} ${p.bio}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
   );
+  const publicCatalog = useMemo(() => {
+    const blocked = new Set(book.state.blockedHandles);
+    const publicIds = new Set<string>(demoPeople.filter((p) => !blocked.has(p.handle)).flatMap((p) => Array.from(p.ids)));
+    return demoCatalog.filter((place) => publicIds.has(place.savedId));
+  }, [book.state.blockedHandles]);
+  const regionOptions = useMemo(() => buildRegionOptions(publicCatalog), [publicCatalog]);
+  const regionLabel = region === 'kr' ? t('regions.nationwide') : regionOptions.find((r) => r.id === region)?.path.slice(1).map((p) => p.label).join(' · ') ?? t('regions.unknown');
   return (
     <>
       <ScrollView
@@ -92,10 +106,9 @@ export function DiscoverScreen({
           />
         </View>
         {isDemo ? (
-          <View style={ui.row}>
-            {['all', 'seoul', 'tokyo'].map((r) => (
-              <Chip key={r} label={t(`explore.${r}`)} selected={region === r} onPress={() => setRegion(r)} />
-            ))}
+          <View style={{ backgroundColor: colors.sage, borderRadius: 16, padding: 16, gap: 4 }}>
+            <RegionButton label={regionLabel} onPress={() => setChoosingRegion(true)} />
+            <Text style={ui.muted}>{t('discover.regionHint')}</Text>
           </View>
         ) : null}
         <View style={ui.between}>
@@ -138,7 +151,7 @@ export function DiscoverScreen({
                 <View style={[ui.row, { gap: 4 }]}>
                   <Icon name="pin" size={12} color={colors.muted} />
                   <Text style={{ fontSize: 11, color: colors.muted }}>
-                    {person.regionLabel ?? t('explore.publicMap')}
+                    {isDemo && region !== 'kr' ? regionLabel : person.regionLabel ?? t('explore.publicMap')}
                   </Text>
                 </View>
                 <Text
@@ -179,7 +192,7 @@ export function DiscoverScreen({
                     {t('explore.personMap')}
                   </Text>
                   <Text style={[ui.muted, { fontSize: 11 }]}>
-                    {t('discover.placeCount', { count: person.publicPlaceCount })}
+                    {t(isDemo && region !== 'kr' ? 'discover.regionPlaceCount' : 'discover.placeCount', { count: person.publicPlaceCount })}
                     {isDemo ? ` · ${t('common.demo')}` : ''}
                   </Text>
                 </View>
@@ -189,19 +202,23 @@ export function DiscoverScreen({
           </Pressable>
         ))}
         {!visible.length && !maps.isLoading ? (
-          <Empty title={t('explore.empty')} body={t('explore.emptyHint')} />
+          <Empty title={t('explore.empty')} body={t('explore.emptyHint')}
+            action={isDemo && region !== 'kr' ? <Action secondary label={t('regions.showNationwide')} onPress={() => onRegionChange('kr')} /> : undefined} />
         ) : null}
         <View style={[ui.row, { padding: 16, gap: 12 }]}>
           <Icon name="lock" color={colors.muted} size={17} />
           <Text style={[ui.muted, { flex: 1, fontSize: 12 }]}>{t('explore.privacy')}</Text>
         </View>
       </ScrollView>
+      {choosingRegion ? <RegionPickerSheet places={publicCatalog} value={region} rootId="kr" hint={t('regions.publicHint')}
+        onClose={() => setChoosingRegion(false)} onSelect={(id) => { onRegionChange(id); setChoosingRegion(false); }} /> : null}
       {selected && !reportTarget ? (
         <PublicMapDetail
           key={selected.handle}
           person={selected}
           book={book}
           isDemo={isDemo}
+          region={region}
           onClose={() => setSelected(null)}
           onSaved={onSaved}
           onReport={setReportTarget}
@@ -215,6 +232,7 @@ function PublicMapDetail({
   person,
   book,
   isDemo,
+  region,
   onClose,
   onSaved,
   onReport,
@@ -222,6 +240,7 @@ function PublicMapDetail({
   person: Person;
   book: NotebookController;
   isDemo: boolean;
+  region: string;
   onClose: () => void;
   onSaved: () => void;
   onReport: (target: ReportTarget) => void;
@@ -241,12 +260,10 @@ function PublicMapDetail({
   const ids = isDemo
     ? (demoPeople.find((p) => p.handle === person.handle)?.ids as readonly string[] | undefined)
     : undefined;
-  const visibleIds = new Set(ids);
   const ownedIds = new Set(book.state.places.map(p => p.savedId));
   const copiedIds = new Set(copied);
   const places: NotebookPlace[] = isDemo
-    ? demoCatalog
-        .filter((p) => visibleIds.has(p.savedId))
+    ? publicPlacesInRegion(demoCatalog, ids ?? [], region)
         .map((p) => Object.assign(copyAsPrivate(p, p.savedId), { publicNote: t('explore.sampleNote') }))
     : (snapshot.data?.places ?? []).map((p) => ({
         savedId: p.sourceSavedId,
@@ -290,11 +307,7 @@ function PublicMapDetail({
       subtitle={`@${person.handle}`}
       onClose={onClose}
     >
-      <View style={{ padding: 24, backgroundColor: colors.sage, borderRadius: 22, gap: 12 }}>
-        <Icon name="map" size={28} color={colors.success} />
-        <Text style={[ui.heading, { fontSize: 24, lineHeight: 33 }]}>{person.bio}</Text>
-        <Text style={ui.muted}>{t('discover.placeCount', { count: person.publicPlaceCount })}</Text>
-      </View>
+      <PublicMapIntro person={person} region={region} isDemo={isDemo} />
       {error || (snapshot.isError && !isDemo) ? <Notice>{t('discover.copyError')}</Notice> : null}
       {snapshot.isError && !isDemo ? (
         <Action label={t('common.retry')} onPress={() => void snapshot.refetch()} />
@@ -355,5 +368,18 @@ function PublicMapDetail({
         </>
       ) : null}
     </Sheet>
+  );
+}
+
+function PublicMapIntro({ person, region, isDemo }: { person: Person; region: string; isDemo: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <View style={{ padding: 24, backgroundColor: colors.sage, borderRadius: 22, gap: 12 }}>
+      <Icon name="map" size={28} color={colors.success} />
+      <Text style={[ui.heading, { fontSize: 24, lineHeight: 33 }]}>{person.bio}</Text>
+      <Text style={ui.muted}>
+        {t(isDemo && region !== 'kr' ? 'discover.regionPlaceCount' : 'discover.placeCount', { count: person.publicPlaceCount })}
+      </Text>
+    </View>
   );
 }

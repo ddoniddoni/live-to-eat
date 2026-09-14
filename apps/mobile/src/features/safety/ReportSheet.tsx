@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { safety } from '@/features/safety/safetyStyles';
-import { Text, View } from 'react-native';
+import { Keyboard, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Sheet } from '@/components/ui/Sheet';
 import { Action, Field, Notice, ui } from '@/components/ui/primitives';
@@ -12,29 +12,21 @@ export function ReportSheet({ target, onClose }: { target: ReportTarget; onClose
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
   const [reviewing, setReviewing] = useState(false);
-  const [discarding, setDiscarding] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const canReview = canReviewReport(reason, details);
   const dirty = reason !== null || details.length > 0;
-  const requestClose = () => dirty ? setDiscarding(true) : onClose();
-
-  if (discarding) return (
-    <Sheet title={t('report.discardTitle')} onClose={() => setDiscarding(false)}>
-      <SafetyIntro icon="edit" eyebrow={t('report.eyebrow')} title={t('report.discardTitle')} body={t('report.discardBody')} />
-      <Action label={t('report.keepEditing')} onPress={() => setDiscarding(false)} />
-      <Action secondary label={t('report.discard')} onPress={onClose} />
-    </Sheet>
-  );
 
   return (
-    <Sheet title={t('report.title')} subtitle={t(reviewing ? 'report.stepReview' : 'report.stepReason')} onClose={requestClose}
+    <Sheet title={t('report.title')} subtitle={t(reviewing ? 'report.stepReview' : 'report.stepReason')} onClose={onClose}
+      contentKey={String(reviewing)}
+      unsavedChanges={dirty} {...(reviewing ? { onBack: () => { setReviewing(false); setUnavailable(false); } } : {})}
       footer={reviewing ? (
         <>
           {unavailable ? <Notice>{t('report.unavailable')}</Notice> : null}
           <Action label={t('report.send')} icon="shield" disabled={unavailable} onPress={() => setUnavailable(true)} />
           <Action secondary label={t('report.edit')} onPress={() => { setReviewing(false); setUnavailable(false); }} />
         </>
-      ) : <Action label={t('report.review')} icon="arrow" disabled={!canReview} onPress={() => setReviewing(true)} />}
+      ) : <Action label={t('report.review')} icon="arrow" disabled={!canReview} onPress={() => { Keyboard.dismiss(); setReviewing(true); }} />}
     >
       <SafetyIntro icon="shield" eyebrow={t('report.eyebrow')}
         title={t(reviewing ? 'report.reviewTitle' : 'report.introTitle')}

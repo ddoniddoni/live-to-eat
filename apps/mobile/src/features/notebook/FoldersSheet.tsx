@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { Keyboard, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { removeCollection } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
@@ -28,6 +28,7 @@ export function FoldersSheet({
   const [error, setError] = useState(false);
   const save = async () => {
     if (!name.trim() || busy) return;
+    Keyboard.dismiss();
     setBusy(true);
     setError(false);
     try {
@@ -71,8 +72,12 @@ export function FoldersSheet({
     }
   };
   return (
-    <Sheet title={t('folders.title')} subtitle={t('folders.description')} onClose={onClose}>
+    <Sheet title={t('folders.title')} subtitle={t('folders.description')} onClose={onClose} busy={busy}
+      {...(deleting ? { onBack: () => setDeleting(null) } : {})}
+      unsavedChanges={name !== (book.state.collections.find((c) => c.id === editing)?.name ?? '')}>
       <Field
+        editable={!busy}
+        returnKeyType="done"
         label={t(editing ? 'folders.rename' : 'placeSearch.newCollection')}
         value={name}
         onChangeText={setName}

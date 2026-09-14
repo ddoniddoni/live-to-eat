@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -50,6 +50,7 @@ export function Action({
   danger = false,
   disabled = false,
   busy = false,
+  testID,
 }: {
   label: string;
   onPress: () => void;
@@ -58,10 +59,13 @@ export function Action({
   danger?: boolean;
   disabled?: boolean;
   busy?: boolean;
+  testID?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
+      testID={testID}
       accessibilityState={{ disabled: disabled || busy, busy }}
       disabled={disabled || busy}
       onPress={onPress}
@@ -105,16 +109,23 @@ export function IconButton({
   label,
   onPress,
   accent = false,
+  disabled = false,
+  testID,
 }: {
   name: IconName;
   label: string;
   onPress: () => void;
   accent?: boolean;
+  disabled?: boolean;
+  testID?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => ({
         width: 46,
@@ -123,7 +134,7 @@ export function IconButton({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: accent ? colors.blush : colors.paper,
-        opacity: pressed ? 0.6 : 1,
+        opacity: disabled ? 0.5 : pressed ? 0.6 : 1,
       })}
     >
       <Icon name={name} color={accent ? colors.tomato : colors.ink} />
@@ -157,6 +168,7 @@ export function Chip({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 7,
+        flexShrink: 1,
         opacity: pressed ? 0.7 : 1,
       })}
     >
@@ -164,6 +176,7 @@ export function Chip({
       <Text
         style={{
           fontFamily: type.body,
+          flexShrink: 1,
           fontSize: 13,
           fontWeight: selected ? '700' : '500',
           color: selected ? colors.paper : colors.muted,
@@ -174,12 +187,13 @@ export function Chip({
     </Pressable>
   );
 }
-export function Field({ label, ...props }: TextInputProps & { label: string }) {
+export function Field({ label, inputRef, ...props }: TextInputProps & { label: string; inputRef?: Ref<TextInput> }) {
   return (
     <View style={{ gap: 8 }}>
       <Text style={ui.label}>{label}</Text>
       <TextInput
         {...props}
+        ref={inputRef}
         accessibilityLabel={label}
         placeholderTextColor={colors.muted}
         style={[ui.input, props.multiline ? { minHeight: 110, textAlignVertical: 'top' } : null, props.style]}
@@ -190,7 +204,7 @@ export function Field({ label, ...props }: TextInputProps & { label: string }) {
 export function Notice({ children }: { children: ReactNode }) {
   return (
     <View style={ui.error}>
-      <Text accessibilityRole="alert" style={ui.errorText}>
+      <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={ui.errorText}>
         {children}
       </Text>
     </View>

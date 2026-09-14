@@ -44,7 +44,7 @@
     "addPlace": "장소 저장",
     "want": "가고 싶어요",
     "visited": "방문했어요",
-    "locationNote": "위치 권한은 선택이에요. 어느 나라나 도시에서 시작해도 됩니다.",
+    "locationNote": "위치 권한 없이도 지역과 장소명으로 찾을 수 있어요.",
     "signOut": "로그아웃",
     "preview": "미리보기",
     "previewNotice": "미리보기 모드입니다. 이 기기에서 로그인, 저장 데이터, Supabase 호출을 사용하지 않습니다."
@@ -57,7 +57,7 @@
     "description": "장소명이나 지역을 입력한 뒤, 결과를 확인하고 내 지도에 비공개로 저장해요.",
     "placeholder": "예: 성수동 파스타",
     "search": "검색",
-    "globalScope": "전 세계에서 검색해요. 도시나 국가를 검색어에 함께 입력해 보세요.",
+    "globalScope": "검색 결과에서 지점과 주소를 확인해 주세요.",
     "queryHint": "두 글자 이상 입력해 주세요.",
     "searchError": "장소를 찾지 못했어요. 연결을 확인하고 다시 시도해 주세요.",
     "results": "검색 결과",
@@ -152,7 +152,9 @@
     "copyBoundary": "개인 기록은 복사하지 않음",
     "copyToMap": "내 지도에 저장",
     "copied": "저장됨",
-    "copyError": "내 지도에 저장하지 못했어요. 이 장소의 공개 상태가 바뀌었을 수 있어요."
+    "copyError": "내 지도에 저장하지 못했어요. 이 장소의 공개 상태가 바뀌었을 수 있어요.",
+    "regionHint": "선택 지역에 공개 장소가 있는 사람의 지도를 보여요.",
+    "regionPlaceCount": "이 지역의 공개 장소 {{count}}곳"
   },
   "auth": {
     "launchTitle": "맛있는 기억을 꺼내는 중",
@@ -395,7 +397,10 @@
     "chooseRegion": "어느 지역을 볼까요?",
     "regionHint": "국가나 지역을 선택하면 그 안의 하위 지역도 함께 보여요.",
     "subtitle_one": "좋아하는 한 끼, 가보고 싶은 곳 {{count}}곳",
-    "subtitle_other": "좋아하는 한 끼, 가보고 싶은 곳 {{count}}곳"
+    "subtitle_other": "좋아하는 한 끼, 가보고 싶은 곳 {{count}}곳",
+    "filteredEmptyTitle": "선택한 조건에 맞는 기록이 없어요",
+    "filteredEmptyBody": "지역이나 필터를 바꾸면 다른 저장을 다시 볼 수 있어요.",
+    "clearFilters": "전체 기록 다시 보기"
   },
   "editor": {
     "title": "장소의 기록",
@@ -421,12 +426,15 @@
     "deleteConfirm": "장소 삭제"
   },
   "search": {
-    "demoHint": "예시 장소로 검색과 저장을 체험해 보세요.",
-    "scope": "전 세계 · 검색어에 도시를 함께 넣어보세요",
+    "demoHint": "국내 예시 장소 · 실제 장소 검색은 연결 전이에요.",
     "try": "이렇게 찾아보세요",
     "samples": "둘러볼 예시 장소",
     "empty": "일치하는 예시 장소가 없어요",
-    "emptyHint": "성수, 커피, 도쿄처럼 다른 검색어를 입력해 보세요."
+    "emptyHint": "검색어를 바꾸거나 검색 지역을 넓혀보세요.",
+    "scopeNationwide": "대한민국 전체의 예시 장소에서 검색해요.",
+    "scopeRegion": "{{region}} 및 하위 지역 안에서 검색해요.",
+    "queryResults": "“{{query}}” 검색 결과",
+    "tryNationwide": "같은 검색어로 전국에서 찾기"
   },
   "explore": {
     "title": "사람을 따라,\n새로운 한 끼.",
@@ -434,7 +442,6 @@
     "search": "이름, 핸들, 소개로 찾기",
     "all": "모든 지역",
     "seoul": "서울",
-    "tokyo": "도쿄",
     "maps": "취향이 담긴 지도",
     "personMap": "의 지도",
     "publicMap": "공개 지도",
@@ -489,7 +496,8 @@
     "placeCount_one": "장소 {{count}}곳",
     "placeCount_other": "장소 {{count}}곳",
     "days_one": "{{count}}일",
-    "days_other": "{{count}}일"
+    "days_other": "{{count}}일",
+    "regionSelectionHint": "상위 지역을 고르면 하위 지역의 저장도 함께 선택할 수 있어요. 지역을 바꾸면 장소 선택과 공개 동의를 다시 확인해요."
   },
   "profile": {
     "title": "프로필",
@@ -559,5 +567,35 @@
     "share": "나누고 싶은 지역과 장소만 골라서",
     "demo": "지금은 예시 장소로 체험할 수 있어요. 기록은 이 기기에만 저장되며 실제 계정이나 지도 서비스에 연결되지 않아요.",
     "start": "내 지도 시작하기"
+  },
+  "draft": {
+    "discardTitle": "작성을 그만둘까요?",
+    "discardBody": "아직 저장하지 않은 내용이 있어요. 계속 작성하거나 내용을 버리고 닫을 수 있어요.",
+    "keepEditing": "계속 작성하기",
+    "discard": "작성 내용 버리기"
+  },
+  "regions": {
+    "title": "지역 선택",
+    "eyebrow": "다음 한 끼를 찾을 지역",
+    "nationwide": "전국",
+    "allSaved": "모든 저장 지역",
+    "unknown": "선택한 지역",
+    "change": "지역 변경 · {{region}}",
+    "apply": "{{region}} 적용",
+    "open": "{{region}} 지역 살펴보기",
+    "find": "지역 이름 찾기",
+    "placeholder": "예: 부산, 수영구, 서귀포",
+    "results": "일치하는 지역",
+    "placeCount": "{{count}}곳",
+    "placeCount_one": "{{count}}곳",
+    "placeCount_other": "{{count}}곳",
+    "noResults": "일치하는 지역이 없어요",
+    "noResultsHint": "다른 지역 이름이나 상위 지역으로 찾아보세요.",
+    "ready": "이 지역에서 살펴볼까요?",
+    "readyHint": "아래 적용 버튼으로 선택을 완료하거나 상위 지역으로 돌아갈 수 있어요.",
+    "catalogHint": "체험용 국내 장소에 연결된 예시 지역이에요.",
+    "savedHint": "현재 불러온 저장의 지역과 하위 장소를 기준으로 보여요.",
+    "publicHint": "공개된 예시 장소가 있는 지역만 보여요.",
+    "showNationwide": "전국에서 다시 보기"
   }
 }

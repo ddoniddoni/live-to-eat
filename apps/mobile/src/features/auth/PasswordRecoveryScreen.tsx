@@ -56,7 +56,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
         <ScrollView
-          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -99,6 +99,7 @@ export const PasswordRecoveryScreen = ({ auth }: { auth: AuthSessionController }
                       setPassword(value);
                     }}
                     onSubmitEditing={() => confirmationRef.current?.focus()}
+                    submitBehavior="submit"
                     placeholder={t('auth.newPasswordPlaceholder')}
                     placeholderTextColor={colors.muted}
                     returnKeyType="next"

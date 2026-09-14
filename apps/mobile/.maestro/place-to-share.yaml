@@ -1,0 +1,150 @@
+# Run on a dedicated demo installation with no previous saves beyond the seed.
+# See docs/04_DEVELOPMENT.md for environment and device setup.
+appId: ${APP_ID}
+name: Save a place, preserve edits, filter a region, create a share draft
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: welcome-start
+    commands:
+      - tapOn:
+          id: welcome-start
+- assertVisible:
+    id: tab-map
+- tapOn:
+    id: add-place
+- tapOn: 부산
+- scrollUntilVisible:
+    element:
+      id: search-result-demo-busan-coffee
+    direction: DOWN
+- tapOn:
+    id: search-result-demo-busan-coffee
+- scrollUntilVisible:
+    element:
+      id: place-note
+    direction: DOWN
+- tapOn:
+    id: place-note
+- inputText: Mobile QA note
+- assertVisible:
+    id: place-save
+- takeScreenshot: place-keyboard
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+      - assertVisible:
+          id: place-save
+      - assertNotVisible:
+          id: draft-discard
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - hideKeyboard
+- tapOn:
+    id: sheet-close
+- assertVisible:
+    id: draft-discard
+- takeScreenshot: discard-confirmation
+- tapOn:
+    id: draft-keep
+- scrollUntilVisible:
+    element:
+      id: place-note
+    direction: DOWN
+- assertVisible: Mobile QA note
+- tapOn:
+    id: place-save
+- tapOn:
+    id: region-picker-open
+- tapOn:
+    id: region-kr
+- tapOn:
+    id: region-busan
+- takeScreenshot: region-picker
+- tapOn:
+    id: region-apply
+- scrollUntilVisible:
+    element:
+      id: saved-place-demo-busan-coffee
+    direction: DOWN
+- tapOn:
+    id: saved-place-demo-busan-coffee
+- scrollUntilVisible:
+    element:
+      id: place-note
+    direction: DOWN
+- assertVisible: Mobile QA note
+- tapOn:
+    id: place-note
+    point: "95%,85%"
+- eraseText
+- inputText: Edited mobile QA note
+- hideKeyboard
+- assertVisible: Edited mobile QA note
+- tapOn:
+    id: place-save
+- scrollUntilVisible:
+    element:
+      id: create-share
+    direction: UP
+- tapOn:
+    id: create-share
+- tapOn:
+    id: share-next
+- tapOn:
+    id: share-select-all
+- tapOn:
+    id: share-next
+- tapOn:
+    id: share-name
+- inputText: Busan QA
+- assertVisible:
+    id: share-save
+- takeScreenshot: share-keyboard
+- hideKeyboard
+- assertVisible:
+    id: share-save
+    enabled: false
+- scrollUntilVisible:
+    element:
+      id: share-consent
+    direction: DOWN
+- tapOn:
+    id: share-consent
+- assertVisible:
+    id: share-save
+    enabled: true
+- takeScreenshot: share-consent
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+      - assertVisible:
+          id: share-select-all
+      - tapOn:
+          id: share-next
+      - assertVisible: Busan QA
+- tapOn:
+    id: share-save
+- assertVisible:
+    id: tab-map
+- assertNotVisible:
+    id: share-editor
+- tapOn:
+    id: tab-profile
+- scrollUntilVisible:
+    element: 공유 초안 관리
+    direction: DOWN
+- tapOn: 공유 초안 관리
+- assertVisible: Busan QA
+- tapOn:
+    id: sheet-close
+- tapOn:
+    id: tab-map

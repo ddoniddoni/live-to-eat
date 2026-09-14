@@ -235,7 +235,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.keyboardView}>
         <ScrollView
-          automaticallyAdjustKeyboardInsets
+          keyboardDismissMode="on-drag"
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -267,6 +267,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
                 }}
                 placeholder={t('auth.emailPlaceholder')}
                 returnKeyType={mode === 'forgot-password' ? 'done' : 'next'}
+                submitBehavior={mode === 'forgot-password' ? 'blurAndSubmit' : 'submit'}
                 textContentType="emailAddress"
                 value={email}
               />
@@ -283,6 +284,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
                   placeholder={t('auth.passwordPlaceholder')}
                   inputRef={passwordRef}
                   returnKeyType={mode === 'sign-in' ? 'done' : 'next'}
+                  submitBehavior={mode === 'sign-in' ? 'blurAndSubmit' : 'submit'}
                   secureTextEntry={!passwordVisible}
                   secureVisible={passwordVisible}
                   textContentType={mode === 'sign-in' ? 'password' : 'newPassword'}

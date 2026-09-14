@@ -16,9 +16,21 @@ const regions = {
     { id: 'seoul', label: '서울' },
     { id: 'seochon', label: '서촌' },
   ],
-  tokyo: [
-    { id: 'jp', label: '일본' },
-    { id: 'tokyo', label: '도쿄' },
+  gwangan: [
+    { id: 'kr', label: '대한민국' },
+    { id: 'busan', label: '부산' },
+    { id: 'suyeong', label: '수영구' },
+    { id: 'gwangan', label: '광안동' },
+  ],
+  busanCentral: [
+    { id: 'kr', label: '대한민국' },
+    { id: 'busan', label: '부산' },
+    { id: 'busan-jung', label: '중구' },
+  ],
+  jeju: [
+    { id: 'kr', label: '대한민국' },
+    { id: 'jeju', label: '제주' },
+    { id: 'seogwipo', label: '서귀포시' },
   ],
 };
 const sample = (
@@ -55,15 +67,19 @@ export const demoCatalog: NotebookPlace[] = [
     ...sample('bakery', '모퉁이 베이커리', 'seochon', ['베이커리', '브런치'], true, 'weekend'),
     note: '일찍 가면 따뜻한 빵을 만날 수 있다.',
   },
-  sample('noodle', '멘야 하루', 'tokyo', ['라멘', '혼밥'], false),
+  // New domestic examples use new IDs. Existing saved foreign examples remain untouched.
+  sample('busan-noodle', '바다 곁 국수', 'gwangan', ['국수', '혼밥']),
   sample('wine', '작은 와인바', 'seongsu', ['와인', '저녁'], false, 'weekend'),
   { ...sample('rice', '한 그릇', 'seochon', ['한식', '점심'], true), isRecommended: true },
   sample('dessert', '계절의 조각', 'yeonnam', ['디저트', '카페']),
-  sample('sushi', '키오쿠 스시', 'tokyo', ['스시', '저녁']),
+  sample('busan-coffee', '파도 커피', 'gwangan', ['커피', '카페']),
+  sample('busan-bakery', '항구 베이커리', 'busanCentral', ['베이커리', '브런치']),
+  sample('jeju-coffee', '귤빛 커피', 'jeju', ['커피', '카페'], false, 'coffee'),
+  sample('jeju-rice', '돌담 한 상', 'jeju', ['한식', '점심']),
 ];
 export const createDemoNotebook = (): Notebook => ({
   version: 1,
-  places: demoCatalog.slice(0, 6).map(p => Object.assign({}, p)),
+  places: demoCatalog.filter((p) => ['demo-table', 'demo-coffee', 'demo-bakery', 'demo-busan-noodle', 'demo-wine', 'demo-jeju-coffee'].includes(p.savedId)).map(p => Object.assign({}, p)),
   collections: [
     { id: 'weekend', name: '주말의 식탁' },
     { id: 'coffee', name: '커피 한 잔' },
@@ -96,14 +112,24 @@ export const demoPeople = [
     ids: ['demo-coffee', 'demo-bakery'],
   },
   {
-    handle: 'haru_table',
-    displayName: '하루',
-    bio: '골목 안 작은 식당을 좋아해요.',
-    region: 'tokyo',
-    regionLabel: '도쿄',
+    handle: 'bada_busan',
+    displayName: '바다',
+    bio: '바닷바람을 따라, 한 끼와 커피 한 잔.',
+    region: 'busan',
+    regionLabel: '부산',
     theme: 'lavender',
-    initial: '하',
-    ids: ['demo-noodle', 'demo-sushi'],
+    initial: '바',
+    ids: ['demo-busan-noodle', 'demo-busan-coffee', 'demo-busan-bakery', 'demo-jeju-rice'],
+  },
+  {
+    handle: 'jeju_slow',
+    displayName: '여름',
+    bio: '돌담길 산책 끝에 만나는 작은 식탁.',
+    region: 'jeju',
+    regionLabel: '제주',
+    theme: 'sage',
+    initial: '여',
+    ids: ['demo-jeju-coffee', 'demo-jeju-rice'],
   },
 ] as const;
 export const emptyNotebook = (): Notebook => ({

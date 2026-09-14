@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { parseTags, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
@@ -32,13 +32,8 @@ export function PlaceEditor({
   const [tags, setTags] = useState(() => place.tags.join(', '));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
-  const [confirm, setConfirm] = useState<'discard' | 'delete' | null>(null);
+  const [confirm, setConfirm] = useState(false);
   const dirty = JSON.stringify(draft) !== JSON.stringify(place) || tags !== place.tags.join(', ');
-  const close = () => {
-    if (busy) return;
-    if (dirty) setConfirm('discard');
-    else onClose();
-  };
   const save = async () => {
     if (busy) return;
     setBusy(true);
@@ -64,38 +59,37 @@ export function PlaceEditor({
       onClose();
     } catch {
       setError(true);
-      setConfirm(null);
+      setConfirm(false);
     } finally {
       setBusy(false);
     }
   };
+  if (confirm)
+    return (
+      <Sheet title={t('editor.deleteTitle')} onClose={() => setConfirm(false)} busy={busy}>
+        <Text style={ui.body}>{t('editor.deleteBody')}</Text>
+        <Action danger label={t('editor.deleteConfirm')} busy={busy} onPress={() => void remove()} />
+        <Action secondary label={t('common.cancel')} disabled={busy} onPress={() => setConfirm(false)} />
+      </Sheet>
+    );
   return (
     <Sheet
+      testID="place-editor"
       title={t(isNew ? 'editor.addTitle' : 'editor.title')}
-      onClose={close}
+      onClose={onClose}
+      unsavedChanges={dirty}
+      busy={busy}
       footer={
-        confirm ? (
-          <View style={{ padding: 20, backgroundColor: colors.blush, borderRadius: 18, gap: 14 }}>
-            <Text accessibilityRole="alert" style={ui.heading}>
-              {t(`editor.${confirm}Title`)}
-            </Text>
-            <Text style={ui.muted}>{t(`editor.${confirm}Body`)}</Text>
-            <Action
-              label={t(`editor.${confirm}Confirm`)}
-              danger
-              busy={busy}
-              onPress={confirm === 'delete' ? () => void remove() : onClose}
-            />
-            <Action label={t('common.cancel')} secondary onPress={() => setConfirm(null)} />
-          </View>
-        ) : (
-          <Action
-            label={t(isNew ? 'editor.saveNew' : 'editor.save')}
-            onPress={() => void save()}
-            busy={busy}
-            icon={isNew ? 'plus' : 'check'}
-          />
-        )
+        <Action
+          testID="place-save"
+          label={t(isNew ? 'editor.saveNew' : 'editor.save')}
+          onPress={() => {
+            Keyboard.dismiss();
+            void save();
+          }}
+          busy={busy}
+          icon={isNew ? 'plus' : 'check'}
+        />
       }
     >
       <View style={[ui.row, { gap: 17 }]}>
@@ -110,7 +104,7 @@ export function PlaceEditor({
       </View>
       <View>
         <Text style={ui.label}>{t('placeSearch.visitStatus')}</Text>
-        <View style={ui.row}>
+        <View style={[ui.row, { flexWrap: 'wrap' }]}>
           {(['want', 'visited'] as const).map((v) => (
             <Chip
               key={v}
@@ -137,6 +131,8 @@ export function PlaceEditor({
         />
       </View>
       <Field
+        testID="place-note"
+        editable={!busy}
         label={t('placeSearch.note')}
         multiline
         maxLength={2000}
@@ -146,10 +142,14 @@ export function PlaceEditor({
       />
       <View style={[ui.row, { marginTop: -12 }]}>
         <Icon name="lock" size={13} color={colors.muted} />
-        <Text style={ui.muted}>{t('editor.privateNote')}</Text>
+        <Text style={[ui.muted, { flex: 1 }]}>{t('editor.privateNote')}</Text>
       </View>
       <Field
         label={t('placeSearch.tags')}
+        testID="place-tags"
+        editable={!busy}
+        returnKeyType="done"
+        onSubmitEditing={Keyboard.dismiss}
         value={tags}
         onChangeText={setTags}
         maxLength={1200}
@@ -185,7 +185,7 @@ export function PlaceEditor({
                 <Pressable
                   key={v}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected: draft.visibility === v }}
+                  accessibilityState={{ checked: draft.visibility === v }}
                   onPress={() => setDraft((d) => ({ ...d, visibility: v }))}
                   style={[
                     ui.row,
@@ -229,7 +229,10 @@ export function PlaceEditor({
       {onDelete ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => setConfirm('delete')}
+          onPress={() => {
+            Keyboard.dismiss();
+            setConfirm(true);
+          }}
           style={{ minHeight: 48, justifyContent: 'center', alignItems: 'center' }}
         >
           <Text style={{ color: colors.tomato, fontSize: 14 }}>{t('savedPlaces.delete')}</Text>
