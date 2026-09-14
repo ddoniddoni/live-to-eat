@@ -5,14 +5,19 @@ import { colors } from '@/components/tokens';
 import { FoodArtwork } from '@/components/ui/Artwork';
 import { Icon } from '@/components/ui/Icon';
 import { Action, ui } from '@/components/ui/primitives';
-export function WelcomeSheet({ onClose }: { onClose: () => void }) {
+import { RequestError } from '@/components/ui/RequestError';
+import type { FailureKind } from '@/lib/requests/request';
+export function WelcomeSheet({ onClose, busy, error }: { onClose: () => void; busy: boolean; error: FailureKind | null }) {
   const { t } = useTranslation();
   return (
     <Sheet
       title="LiveToEat"
       onClose={onClose}
-      footer={<Action label={t('welcome.start')} onPress={onClose} icon="arrow" testID="welcome-start" />}
+      busy={busy}
+      contentKey={error ?? 'welcome'}
+      footer={<Action busy={busy} label={t('welcome.start')} onPress={onClose} icon="arrow" testID="welcome-start" />}
     >
+      <RequestError error={error} />
       <View
         style={{
           backgroundColor: colors.sage,

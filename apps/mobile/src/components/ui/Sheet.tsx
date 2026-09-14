@@ -43,6 +43,7 @@ export function Sheet({
 }) {
   const { t } = useTranslation();
   const reducedMotion = useReducedMotion();
+  const bodyPointerEvents = busy ? 'none' : 'auto';
   const [discarding, setDiscarding] = useState(false);
   const heading = useRef<Text>(null);
   const previousContent = useRef({ discarding, contentKey });
@@ -133,6 +134,8 @@ export function Sheet({
           ) : scrollable ? (
             <ScrollView
               key={`content-${contentKey}`}
+              pointerEvents={bodyPointerEvents}
+              accessibilityElementsHidden={busy}
               keyboardDismissMode="on-drag"
               contentContainerStyle={{ padding: 24, gap: 22, paddingBottom: 40 }}
               keyboardShouldPersistTaps="handled"
@@ -140,7 +143,7 @@ export function Sheet({
               {children}
             </ScrollView>
           ) : (
-            <View style={{ flex: 1 }}>{children}</View>
+            <View pointerEvents={bodyPointerEvents} accessibilityElementsHidden={busy} style={{ flex: 1 }}>{children}</View>
           )}
           {footer && !discarding ? (
             <View

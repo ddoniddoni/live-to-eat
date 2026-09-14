@@ -11,6 +11,8 @@ import type { NotebookController } from '@/features/notebook/useNotebook';
 import { saveExport } from './exportFile';
 import { DeleteAccountSheet } from './DeleteAccountSheet';
 import { SignOutSheet } from '@/features/auth/SignOutSheet';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 
 type Panel = 'edit' | 'language' | 'export' | 'privacy' | 'blocked' | 'help' | 'about' | 'signout' | 'delete' | null;
 export function ProfileScreen({
@@ -28,25 +30,18 @@ export function ProfileScreen({
 }) {
   const { t, i18n } = useTranslation();
   const [panel, setPanel] = useState<Panel>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const { busy, error, run, cancel } = useRequest();
   const visited = book.state.places.filter((p) => p.visitStatus === 'visited').length;
   const open = (p: Panel) => {
-    setError(false);
+    if (busy) return;
+    cancel();
     setPanel(p);
   };
   const toggle = async (value: boolean) => {
-    if (busy) return;
-    setBusy(true);
-    setError(false);
-    try {
+    await run(async () => {
       const enabled = isDemo ? value : await setPublicMapEnabled(value);
-      book.update((b) => ({ ...b, profile: { ...b.profile, publicMapEnabled: enabled } }));
-    } catch {
-      setError(true);
-    } finally {
-      setBusy(false);
-    }
+      await book.update((b) => ({ ...b, profile: { ...b.profile, publicMapEnabled: enabled } }), 'settings');
+    });
   };
   return (
     <>
@@ -227,29 +222,33 @@ function ProfileEditor({ book, onClose }: { book: NotebookController; onClose: (
   const [name, setName] = useState(book.state.profile.displayName);
   const [bio, setBio] = useState(book.state.profile.bio);
   const bioInput = useRef<TextInput>(null);
+  const request = useRequest();
   return (
     <Sheet
       title={t('profile.edit')}
       onClose={onClose}
+      busy={request.busy}
+      contentKey={request.error ?? 'profile'}
       unsavedChanges={name !== book.state.profile.displayName || bio !== book.state.profile.bio}
       footer={
         <Action
-          label={t('editor.save')}
+          label={t(request.error ? 'common.retry' : 'editor.save')}
+          busy={request.busy}
           disabled={!name.trim()}
           onPress={() => {
             Keyboard.dismiss();
-            book.update((b) => ({
+            void request.run(() => book.update((b) => ({
               ...b,
               profile: { ...b.profile, displayName: name.trim(), bio: bio.trim() },
-            }));
-            onClose();
+            }), 'settings'), onClose);
           }}
         />
       }
     >
-      <Field label={t('auth.displayName')} testID="profile-name" value={name} onChangeText={setName} maxLength={60}
+      <RequestError error={request.error} />
+      <Field editable={!request.busy} label={t('auth.displayName')} testID="profile-name" value={name} onChangeText={setName} maxLength={60}
         returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => bioInput.current?.focus()} />
-      <Field label={t('profile.bio')} testID="profile-bio" inputRef={bioInput} value={bio} onChangeText={setBio} maxLength={280} multiline />
+      <Field editable={!request.busy} label={t('profile.bio')} testID="profile-bio" inputRef={bioInput} value={bio} onChangeText={setBio} maxLength={280} multiline />
       <Text style={ui.muted}>{t('profile.editHint')}</Text>
     </Sheet>
   );
@@ -272,6 +271,7 @@ function ProfilePanel({
   const [format, setFormat] = useState<'json' | 'csv'>('json');
   const [includeNotes, setIncludeNotes] = useState(false);
   const [exported, setExported] = useState(false);
+  const mutation = useRequest();
   const exportData = async () => {
     if (busy) return;
     setBusy(true);
@@ -299,7 +299,8 @@ function ProfilePanel({
     }
   };
   return (
-    <Sheet title={t(`profile.panel_${panel}`)} onClose={onClose}>
+    <Sheet title={t(`profile.panel_${panel}`)} onClose={onClose} busy={busy || mutation.busy}>
+      <RequestError error={mutation.error} />
       {panel === 'language' ? (
         <>
           <Text style={ui.muted}>{t('profile.languageHint')}</Text>
@@ -309,8 +310,10 @@ function ProfilePanel({
               label={locale === 'ko' ? '한국어' : 'English'}
               selected={i18n.language.startsWith(locale)}
               onPress={() => {
-                void i18n.changeLanguage(locale);
-                book.update((b) => ({ ...b, locale }));
+                void mutation.run(async () => {
+                  await book.update((b) => ({ ...b, locale }), 'settings');
+                  await i18n.changeLanguage(locale);
+                });
               }}
             />
           ))}
@@ -371,12 +374,13 @@ function ProfilePanel({
                 <Action
                   label={t('profile.unblock')}
                   secondary
-                  onPress={() =>
+                  busy={mutation.busy}
+                  onPress={() => { void mutation.run(() =>
                     book.update((b) => ({
                       ...b,
                       blockedHandles: b.blockedHandles.filter((h) => h !== handle),
-                    }))
-                  }
+                    }), 'settings'));
+                  }}
                 />
               </View>
             ))

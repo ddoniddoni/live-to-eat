@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,8 @@ import {
 } from 'react-native';
 
 import { colors, radii, spacing, type } from '@/components/tokens';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 import {
   type PrivateCollection,
   createPrivateCollection,
@@ -51,8 +54,10 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
   const [isLoadingCollections, setIsLoadingCollections] = useState(true);
   const [isFolderManagerVisible, setIsFolderManagerVisible] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const searchRequest = useRequest<PlaceSearchCandidate[]>({ latest: true, timeoutMs: 12000 });
+  const mutation = useRequest();
+  const isSearching = searchRequest.busy;
+  const isSaving = mutation.busy;
 
   useEffect(() => {
     let isCurrent = true;
@@ -73,22 +78,18 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
   }, [onCollectionsChange, t]);
 
   const runSearch = async (): Promise<void> => {
-    if (query.trim().length < 2 || isSearching) {
+    if (query.trim().length < 2) {
       setError(t('placeSearch.queryHint'));
       return;
     }
 
     setError(null);
-    setIsSearching(true);
-    try {
+    Keyboard.dismiss();
+    setCandidates([]);
+    await searchRequest.run(async () => {
       const languageCode = i18n.language.startsWith('ko') ? 'ko' : 'en';
-      setCandidates(await searchPlaces(query, languageCode));
-    } catch {
-      setCandidates([]);
-      setError(t('placeSearch.searchError'));
-    } finally {
-      setIsSearching(false);
-    }
+      return searchPlaces(query, languageCode);
+    }, setCandidates);
   };
 
   const chooseCandidate = (candidate: PlaceSearchCandidate): void => {
@@ -100,22 +101,19 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
     if (!selected || isSaving) return;
 
     setError(null);
-    setIsSaving(true);
-    try {
-      const savedPlace = await saveSearchCandidate({
+    Keyboard.dismiss();
+    await mutation.run(async () => {
+      return saveSearchCandidate({
         candidate: selected,
         collection: collections.find((collection) => collection.id === selectedCollectionId) ?? null,
         note: note.trim(),
         tags: parseTags(tags),
         visitStatus,
       });
+    }, (savedPlace) => {
       onSaved(savedPlace);
       onDismiss();
-    } catch {
-      setError(t('placeSearch.saveError'));
-    } finally {
-      setIsSaving(false);
-    }
+    });
   };
 
   const createCollection = async (): Promise<void> => {
@@ -123,19 +121,17 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
 
     setError(null);
     setIsCreatingCollection(true);
-    try {
-      const createdCollection = await createPrivateCollection(newCollectionName);
+    await mutation.run(() => createPrivateCollection(newCollectionName), (createdCollection) => {
       onCollectionsChange([createdCollection, ...collections]);
       setSelectedCollectionId(createdCollection.id);
       setNewCollectionName('');
       setIsCreatingCollection(false);
-    } catch {
-      setError(t('placeSearch.collectionCreateError'));
-    }
+    });
   };
 
   const close = (): void => {
-    if (isSearching || isSaving) return;
+    if (isSaving) return;
+    searchRequest.cancel();
     onDismiss();
   };
 
@@ -152,13 +148,14 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
         closeLabel={t('placeSearch.close')}
         eyebrow={t('placeSearch.eyebrow')}
         onDismiss={close}
-        busy={isSaving || isSearching}
+        busy={isSaving}
         unsavedChanges={note.length > 0 || tags.length > 0 || visitStatus !== 'want' || selectedCollectionId !== null || newCollectionName.length > 0}
         title={selected ? t('placeSearch.confirmTitle') : t('placeSearch.title')}
         visible={visible}
       >
           {selected ? (
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+              <RequestError error={mutation.error} />
               <View style={styles.selectedPlace}>
                 <Text style={styles.selectedName}>{selected.displayName}</Text>
                 <Text style={styles.selectedAddress}>{selected.address}</Text>
@@ -188,6 +185,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
               <Text style={styles.label}>{t('placeSearch.note')}</Text>
               <TextInput
                 accessibilityLabel={t('placeSearch.note')}
+                editable={!isSaving}
                 maxLength={2000}
                 multiline
                 onChangeText={setNote}
@@ -201,6 +199,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
               <Text style={styles.label}>{t('placeSearch.tags')}</Text>
               <TextInput
                 accessibilityLabel={t('placeSearch.tags')}
+                editable={!isSaving}
                 autoCapitalize="none"
                 maxLength={1_200}
                 onChangeText={setTags}
@@ -250,6 +249,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
                 <View style={styles.collectionCreateRow}>
                   <TextInput
                     accessibilityLabel={t('placeSearch.newCollection')}
+                    editable={!isSaving}
                     autoFocus
                     maxLength={120}
                     onChangeText={setNewCollectionName}
@@ -304,14 +304,14 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
           ) : (
             <FlatList
               contentContainerStyle={styles.content}
-              data={candidates}
+              data={isSearching || searchRequest.error ? [] : candidates}
               keyboardShouldPersistTaps="handled"
               keyExtractor={(candidate) => candidate.ticket}
               ListEmptyComponent={
-                <View style={styles.emptyResult}>
+                !isSearching && !searchRequest.error ? <View style={styles.emptyResult}>
                   <Text style={styles.emptyResultTitle}>{t('placeSearch.emptyTitle')}</Text>
                   <Text style={styles.emptyResultBody}>{t('placeSearch.emptyBody')}</Text>
-                </View>
+                </View> : null
               }
               ListHeaderComponent={
                 <View>
@@ -341,6 +341,7 @@ export function PlaceSearchSheet({ collections, onCollectionsChange, onDismiss, 
                     </Pressable>
                   </View>
                   <Text style={styles.globalScope}>{t('placeSearch.globalScope')}</Text>
+                  <RequestError error={searchRequest.error} context="search" onRetry={() => void runSearch()} />
                   {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
                   {candidates.length > 0 ? <Text style={styles.resultLabel}>{t('placeSearch.results')}</Text> : null}
                 </View>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 import { Keyboard, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { removeCollection } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { Sheet } from '@/components/ui/Sheet';
-import { Action, Empty, Field, IconButton, Notice, ui } from '@/components/ui/primitives';
+import { Action, Empty, Field, IconButton, ui } from '@/components/ui/primitives';
 import {
   createPrivateCollection,
   deletePrivateCollection,
@@ -24,57 +26,48 @@ export function FoldersSheet({
   const [name, setName] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(false);
+  const { busy, error, run } = useRequest();
   const save = async () => {
     if (!name.trim() || busy) return;
     Keyboard.dismiss();
-    setBusy(true);
-    setError(false);
-    try {
+    await run(async () => {
       const original = book.state.collections.find((c) => c.id === editing);
       const item = isDemo
         ? { id: editing ?? `demo-folder-${Date.now()}`, name: name.trim() }
         : original
           ? await renamePrivateCollection(original, name)
           : await createPrivateCollection(name);
-      book.update((b) => ({
+      await book.update((b) => ({
         ...b,
         collections: original
           ? b.collections.map((c) => (c.id === item.id ? item : c))
           : [...b.collections, item],
         places: b.places.map((p) => (p.collectionId === item.id ? { ...p, collectionName: item.name } : p)),
       }));
+    }, () => {
       setName('');
       setEditing(null);
-    } catch {
-      setError(true);
-    } finally {
-      setBusy(false);
-    }
+    });
   };
   const remove = async (id: string) => {
     const collection = book.state.collections.find((c) => c.id === id);
     if (!collection || busy) return;
-    setBusy(true);
-    try {
+    await run(async () => {
       if (!isDemo) await deletePrivateCollection(collection);
-      book.update((b) => removeCollection(b, id));
+      await book.update((b) => removeCollection(b, id));
+    }, () => {
       setDeleting(null);
       if (editing === id) {
         setEditing(null);
         setName('');
       }
-    } catch {
-      setError(true);
-    } finally {
-      setBusy(false);
-    }
+    });
   };
   return (
     <Sheet title={t('folders.title')} subtitle={t('folders.description')} onClose={onClose} busy={busy}
       {...(deleting ? { onBack: () => setDeleting(null) } : {})}
       unsavedChanges={name !== (book.state.collections.find((c) => c.id === editing)?.name ?? '')}>
+      <RequestError error={error} />
       <Field
         editable={!busy}
         returnKeyType="done"
@@ -102,7 +95,6 @@ export function FoldersSheet({
           }}
         />
       ) : null}
-      {error ? <Notice>{t('common.saveError')}</Notice> : null}
       {book.state.collections.map((c) => (
         <View
           key={c.id}

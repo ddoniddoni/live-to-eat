@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { RequestError } from '@/components/ui/RequestError';
 import { buildRegionOptions, inRegion, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { MapArtwork } from '@/components/ui/Artwork';
-import { Action, Chip, Empty, IconButton, Notice, ui } from '@/components/ui/primitives';
+import { Action, Chip, Empty, IconButton, ui } from '@/components/ui/primitives';
 import { RegionButton } from '@/features/regions/RegionButton';
 import { RegionPickerSheet } from '@/features/regions/RegionPickerSheet';
 import { PlaceCard } from '@/features/notebook/PlaceCard';
@@ -240,7 +241,7 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                 <Icon name="sliders" size={14} color={colors.muted} />
               </Pressable>
             </View>
-            {book.error ? <Notice>{t('common.loadError')}</Notice> : null}
+            <RequestError error={book.error} context="load" onRetry={() => void book.refresh()} />
             {!isDemo && book.total > book.state.places.length ? (
               <Text style={ui.muted}>
                 {t('map.partialPlaces', { count: book.state.places.length, total: book.total })}

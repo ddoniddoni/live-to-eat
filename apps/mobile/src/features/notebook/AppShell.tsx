@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { PrivateCollection } from '@/features/places/collectionsApi';
 import { colors } from '@/components/tokens';
 import { Icon } from '@/components/ui/Icon';
-import { Action, ui } from '@/components/ui/primitives';
+import { ui } from '@/components/ui/primitives';
 import { MyMapScreen } from '@/features/maps/MyMapScreen';
 import { DiscoverScreen } from '@/features/discover/DiscoverScreen';
 import { ProfileScreen } from '@/features/profile/ProfileScreen';
@@ -21,6 +21,8 @@ import { PlaceEditor } from './PlaceEditor';
 import { SearchSheet } from './SearchSheet';
 import { FoldersSheet } from './FoldersSheet';
 import { WelcomeSheet } from './WelcomeSheet';
+import { RequestError } from '@/components/ui/RequestError';
+import { useRequest } from '@/lib/requests/useRequest';
 
 type Overlay =
   | { type: 'search'; region: string }
@@ -39,9 +41,12 @@ export function AppShell({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const book = useNotebook(isDemo);
+  const welcome = useRequest();
   const queryClient = useQueryClient();
   const updateNotebook = book.update;
-  const updateCollections = useCallback((collections: PrivateCollection[]) => updateNotebook(b => ({ ...b, collections })), [updateNotebook]);
+  const updateCollections = useCallback((collections: PrivateCollection[]) => {
+    void updateNotebook(b => ({ ...b, collections })).catch(() => undefined);
+  }, [updateNotebook]);
   useEffect(() => { if (!isDemo) return () => queryClient.clear(); }, [isDemo, queryClient]);
   const [tab, setTab] = useState<'map' | 'discover' | 'profile'>('map');
   const [mapRegion, setMapRegion] = useState('all');
@@ -72,7 +77,7 @@ export function AppShell({
   const savePlace = async (place: NotebookPlace) => {
     if (isDemo) {
       const existing = book.state.places.find((p) => p.savedId === place.savedId);
-      book.upsert({ ...place, version: (existing?.version ?? 0) + 1 });
+      await book.upsert({ ...place, version: (existing?.version ?? 0) + 1 });
     } else {
       const original = book.state.places.find((p) => p.savedId === place.savedId);
       if (!original) throw new Error('PLACE_MISSING');
@@ -85,7 +90,7 @@ export function AppShell({
       });
       let result = { ...updated, publicNote: original.publicNote };
       // Keep a successful private edit even when a later visibility request fails.
-      book.upsert(result);
+      await book.upsert(result);
       if (place.visibility !== original.visibility || place.publicNote !== original.publicNote) {
         const version = await setSavedPlaceVisibility({
           expectedVersion: updated.version,
@@ -94,13 +99,13 @@ export function AppShell({
           visibility: place.visibility,
         });
         result = { ...result, visibility: place.visibility, publicNote: place.publicNote, version };
-        book.upsert(result);
+        await book.upsert(result);
       }
     }
     setToast(t('common.saved'));
   };
   const openPlace = (place: NotebookPlace) => setOverlay({ type: 'place', place, isNew: false });
-  if (book.loading && !book.state.places.length)
+  if (book.loading && !book.loaded)
     return (
       <SafeAreaView
         style={{
@@ -115,23 +120,17 @@ export function AppShell({
         <Text style={ui.muted}>{t('map.loadingPlaces')}</Text>
       </SafeAreaView>
     );
-  if (book.error && !book.state.places.length)
+  if (book.error && !book.loaded)
     return (
       <SafeAreaView
         style={{ flex: 1, backgroundColor: colors.canvas, justifyContent: 'center', padding: 30, gap: 20 }}
       >
-        <Text style={ui.heading}>{t('common.loadError')}</Text>
-        <Action label={t('common.retry')} onPress={() => void book.refresh()} />
+        <RequestError error={book.error} context="load" onRetry={() => void book.refresh()} />
       </SafeAreaView>
     );
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
-        {book.storageError ? (
-          <View accessibilityRole="alert" style={{ padding: 12, backgroundColor: colors.blush }}>
-            <Text style={ui.errorText}>{t('common.storageError')}</Text>
-          </View>
-        ) : null}
         {tab === 'map' ? (
           <MyMapScreen
             book={book}
@@ -262,8 +261,7 @@ export function AppShell({
               onCollectionsChange={updateCollections}
               onDismiss={onClose}
               onSaved={(p) => {
-                book.upsert({ ...p, publicNote: '' });
-                setToast(t('common.saved'));
+                void book.upsert({ ...p, publicNote: '' }).then(() => setToast(t('common.saved'))).catch(() => undefined);
               }}
             />
           )
@@ -281,7 +279,7 @@ export function AppShell({
               ? {
                   onDelete: async () => {
                     if (!isDemo) await deleteSavedPlace(overlay.place);
-                    book.remove(overlay.place.savedId);
+                    await book.remove(overlay.place.savedId);
                     setToast(t('common.deleted'));
                   },
                 }
@@ -306,7 +304,8 @@ export function AppShell({
           />
         ) : null}
         {isDemo && !book.state.welcomed ? (
-          <WelcomeSheet onClose={() => book.update((b) => ({ ...b, welcomed: true }))} />
+          <WelcomeSheet busy={welcome.busy} error={welcome.error}
+            onClose={() => { void welcome.run(() => book.update((b) => ({ ...b, welcomed: true }), 'settings')); }} />
         ) : null}
       </View>
     </SafeAreaView>

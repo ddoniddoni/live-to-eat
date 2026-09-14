@@ -6,6 +6,8 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Action, Empty, ui } from '@/components/ui/primitives';
 import { colors } from '@/components/tokens';
 import type { NotebookController } from '@/features/notebook/useNotebook';
+import { useRequest } from '@/lib/requests/useRequest';
+import { RequestError } from '@/components/ui/RequestError';
 export function ShareManager({
   book,
   onClose,
@@ -16,6 +18,7 @@ export function ShareManager({
   onCreate: () => void;
 }) {
   const { t, i18n } = useTranslation();
+  const request = useRequest();
   const [selected, setSelected] = useState<ShareDraft | null>(null);
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -29,8 +32,11 @@ export function ShareManager({
       title={t('sharing.manage')}
       subtitle={t('sharing.draftHint')}
       onClose={onClose}
-      footer={<Action label={t('sharing.create')} onPress={onCreate} icon="plus" />}
+      busy={request.busy}
+      contentKey={request.error ?? 'manage'}
+      footer={<Action disabled={request.busy} label={t('sharing.create')} onPress={onCreate} icon="plus" />}
     >
+      <RequestError error={request.error} />
       {!book.state.shares.length ? (
         <Empty title={t('sharing.noShares')} body={t('sharing.noSharesHint')} />
       ) : null}
@@ -67,14 +73,15 @@ export function ShareManager({
             <Action
               secondary
               label={t('sharing.revoke')}
-              onPress={() =>
+              busy={request.busy}
+              onPress={() => { void request.run(() =>
                 book.update((b) => ({
                   ...b,
                   shares: b.shares.map((item) =>
                     item.id === s.id ? { ...item, revokedAt: Date.now() } : item,
                   ),
-                }))
-              }
+                }), 'share'));
+              }}
             />
           ) : null}
         </View>
