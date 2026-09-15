@@ -22,6 +22,7 @@ import {
   isValidHandle,
 } from '@/features/auth/authApi';
 import type { AuthSessionController } from '@/features/auth/useAuthSession';
+import { HelpLinks } from '@/features/help/HelpLinks';
 
 type OnboardingScreenProps = {
   auth: AuthSessionController;
@@ -359,6 +360,7 @@ export const OnboardingScreen = ({ auth, onChangeLanguage }: OnboardingScreenPro
                   </View>
                 </View>
 
+                <HelpLinks disabled={auth.busy} />
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: accepted }}

@@ -20,6 +20,7 @@ import { FoodArtwork, MapArtwork } from '@/components/ui/Artwork';
 import { Icon } from '@/components/ui/Icon';
 import type { AuthSessionController } from '@/features/auth/useAuthSession';
 import { validateCredentials, type AuthMode, type FormErrorKey } from './authForm';
+import { HelpLinks } from '@/features/help/HelpLinks';
 
 const copyKeys = {
   'forgot-password': {
@@ -91,6 +92,7 @@ const AuthField = ({
         />
         {onToggleSecure ? (
           <Pressable
+            testID={inputProps.testID ? `${inputProps.testID}-visibility` : undefined}
             accessibilityLabel={t(secureVisible ? 'auth.hidePassword' : 'auth.showPassword')}
             accessibilityRole="button"
             hitSlop={8}
@@ -254,6 +256,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
 
             <View style={styles.form}>
               <AuthField
+                testID="auth-email"
                 editable={!auth.busy}
                 autoCapitalize="none"
                 autoComplete="email"
@@ -273,6 +276,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
               />
               {mode !== 'forgot-password' ? (
                 <AuthField
+                  testID="auth-password"
                   editable={!auth.busy}
                   autoCapitalize="none"
                   autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
@@ -399,6 +403,7 @@ export const AuthCredentialScreen = ({ auth }: { auth: AuthSessionController }) 
             ) : null}
 
             <Text style={styles.privacyNote}>{t('auth.privateByDefault')}</Text>
+            <HelpLinks disabled={auth.busy} />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

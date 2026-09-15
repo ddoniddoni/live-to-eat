@@ -1,0 +1,90 @@
+appId: ${APP_ID}
+name: Read help and policies in both languages and return to the profile
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: welcome-start
+    commands:
+      - tapOn:
+          id: welcome-start
+- tapOn:
+    id: tab-profile
+- scrollUntilVisible:
+    element: 도움말 및 문의
+    direction: DOWN
+- tapOn: 도움말 및 문의
+- assertVisible: 기록이 더 쉬워지는 안내
+- takeScreenshot: help-home-ko
+- scrollUntilVisible:
+    element:
+      id: help-faq-sharing
+    direction: DOWN
+- tapOn:
+    id: help-faq-sharing
+- assertVisible: 공개 지도와 링크 공유는 어떻게 다른가요?
+- scrollUntilVisible:
+    element:
+      id: help-related-contact
+    direction: DOWN
+- tapOn:
+    id: help-related-contact
+- scrollUntilVisible:
+    element:
+      id: help-resource-unavailable
+    direction: DOWN
+- assertVisible: 준비 중
+- assertNotVisible:
+    id: help-open-resource
+- tapOn:
+    id: help-back
+- assertVisible: 공개 지도와 링크 공유는 어떻게 다른가요?
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - back
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          id: help-back
+- scrollUntilVisible:
+    element:
+      id: help-privacy
+    direction: DOWN
+- tapOn:
+    id: help-privacy
+- assertVisible: 서비스 이용 안내
+- tapOn: English
+- assertVisible: Privacy Policy
+- assertVisible: App usage guide
+- takeScreenshot: privacy-guide-en
+- scrollUntilVisible:
+    element:
+      id: help-resource-unavailable
+    direction: DOWN
+- assertVisible: Coming soon
+- assertNotVisible:
+    id: help-open-resource
+- takeScreenshot: privacy-unavailable-en
+- tapOn:
+    id: help-back
+- scrollUntilVisible:
+    element:
+      id: help-terms
+    direction: DOWN
+- tapOn:
+    id: help-terms
+- assertVisible: Terms of Service
+- tapOn: 한국어
+- assertVisible: 이용약관
+- assertVisible: 서비스 이용 안내
+- tapOn:
+    id: sheet-close
+- assertVisible:
+    id: tab-profile
+    selected: true
+- assertVisible: 도움말 및 문의

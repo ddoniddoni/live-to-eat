@@ -1,0 +1,71 @@
+appId: ${APP_ID}
+name: Keep sign-in and sign-up input while reading documents
+---
+# Run with AUTH_PREVIEW=false and placeholder Auth configuration. No account is created.
+- launchApp
+- scrollUntilVisible:
+    element:
+      id: auth-email
+    direction: DOWN
+- tapOn:
+    id: auth-email
+- inputText: reader@example.invalid
+- pressKey: Enter
+- inputText: Sample-password-123
+- scrollUntilVisible:
+    element:
+      id: help-entry-terms
+    direction: DOWN
+- tapOn:
+    id: help-entry-terms
+- assertVisible: 이용약관
+- tapOn:
+    id: help-back
+- scrollUntilVisible:
+    element:
+      id: auth-email
+    direction: UP
+- assertVisible: reader@example.invalid
+- scrollUntilVisible:
+    element:
+      id: auth-password-visibility
+    direction: DOWN
+- tapOn:
+    id: auth-password-visibility
+- assertVisible: Sample-password-123
+- scrollUntilVisible:
+    element: 회원가입
+    direction: DOWN
+- tapOn: 회원가입
+- scrollUntilVisible:
+    element:
+      id: auth-password
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: auth-password
+- inputText: Signup-password-123
+- scrollUntilVisible:
+    element:
+      id: help-entry-privacy
+    direction: DOWN
+- tapOn:
+    id: help-entry-privacy
+- tapOn: English
+- assertVisible: Privacy Policy
+- tapOn:
+    id: sheet-close
+- scrollUntilVisible:
+    element:
+      id: auth-email
+    direction: UP
+- assertVisible: reader@example.invalid
+- scrollUntilVisible:
+    element:
+      id: auth-password
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: auth-password-visibility
+- assertVisible: Signup-password-123
+- takeScreenshot: signup-return
