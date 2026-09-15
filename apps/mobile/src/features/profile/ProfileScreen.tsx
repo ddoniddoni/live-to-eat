@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Keyboard, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { Keyboard, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { exportCsv, exportRecords } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
@@ -13,6 +13,7 @@ import { DeleteAccountSheet } from './DeleteAccountSheet';
 import { SignOutSheet } from '@/features/auth/SignOutSheet';
 import { useRequest } from '@/lib/requests/useRequest';
 import { RequestError } from '@/components/ui/RequestError';
+import { HelpCenterSheet } from '@/features/help/HelpCenterSheet';
 
 type Panel = 'edit' | 'language' | 'export' | 'privacy' | 'blocked' | 'help' | 'about' | 'signout' | 'delete' | null;
 export function ProfileScreen({
@@ -165,7 +166,8 @@ export function ProfileScreen({
       {panel === 'edit' ? <ProfileEditor book={book} onClose={() => setPanel(null)} /> : null}
       {panel === 'delete' ? <DeleteAccountSheet onClose={() => setPanel(null)} onExport={() => setPanel('export')} /> : null}
       {panel === 'signout' && onSignOut ? <SignOutSheet onClose={() => setPanel(null)} onSignOut={onSignOut} /> : null}
-      {panel && panel !== 'edit' && panel !== 'delete' && panel !== 'signout' ? (
+      {panel === 'help' ? <HelpCenterSheet onClose={() => setPanel(null)} /> : null}
+      {panel && panel !== 'edit' && panel !== 'delete' && panel !== 'signout' && panel !== 'help' ? (
         <ProfilePanel
           panel={panel}
           book={book}
@@ -260,7 +262,7 @@ function ProfilePanel({
   isDemo,
   onClose,
 }: {
-  panel: Exclude<Panel, 'edit' | 'delete' | 'signout' | null>;
+  panel: Exclude<Panel, 'edit' | 'delete' | 'signout' | 'help' | null>;
   book: NotebookController;
   isDemo: boolean;
   onClose: () => void;
@@ -386,23 +388,6 @@ function ProfilePanel({
             ))
           ) : (
             <Text style={ui.body}>{t('profile.noBlocked')}</Text>
-          )}
-        </>
-      ) : null}
-      {panel === 'help' ? (
-        <>
-          <Info title={t('profile.helpTitle')} body={t('profile.helpBody')} />
-          <Info title={t('profile.accountTitle')} body={t('profile.accountBody')} />
-          {process.env.EXPO_PUBLIC_SUPPORT_URL?.startsWith('https://') ? (
-            <Action
-              label={t('profile.contact')}
-              icon="arrow"
-              onPress={() => {
-                void Linking.openURL(process.env.EXPO_PUBLIC_SUPPORT_URL!).catch(() => setError(true));
-              }}
-            />
-          ) : (
-            <Notice>{t('profile.supportNotConnected')}</Notice>
           )}
         </>
       ) : null}

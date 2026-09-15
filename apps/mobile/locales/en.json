@@ -248,7 +248,7 @@
     "handleValid": "Valid handle format",
     "language": "App language",
     "consent": "I confirm that I meet the age requirement and accept the Terms and Privacy Notice.",
-    "legalNote": "The document versions and time of consent are recorded to protect your account.",
+    "legalNote": "This is a development consent screen. Official documents, minimum age, and consent versions must be finalized and connected before release.",
     "finish": "Create my private map",
     "signOut": "Sign out",
     "blockedTitle": "This account is unavailable",
@@ -524,7 +524,6 @@
     "panel_export": "Export my records",
     "panel_privacy": "Privacy & sharing",
     "panel_blocked": "Blocked people",
-    "panel_help": "Help & support",
     "panel_about": "About LiveToEat",
     "panel_signout": "Sign out",
     "languageHint": "Choose your app language. Place names and your own notes stay as written.",
@@ -544,12 +543,6 @@
     "blockedHint": "Blocked people’s sample maps are hidden from Explore.",
     "unblock": "Unblock",
     "noBlocked": "You haven’t blocked anyone.",
-    "helpTitle": "Can’t find a place?",
-    "helpBody": "Try adding a city or country to the place name. Check the branch and address before saving.",
-    "accountTitle": "Login and account management",
-    "accountBody": "Try the sign-in method you originally used. Linking, recovering or deleting an account requires identity verification.",
-    "contact": "Contact support",
-    "supportNotConnected": "Support submission and real account deletion are not connected in this build. A support channel is required before release.",
     "aboutBody": "A food map discovered through people. Keep a record of your taste and inspire someone’s next meal.",
     "version": "Version 0.1.0 · Pre-release build",
     "artwork": "Food and map illustrations were created for LiveToEat. They are not photographs or geographic data of actual places.",
@@ -609,5 +602,83 @@
     "savedHint": "Regions and subregions of your currently loaded saves.",
     "publicHint": "Regions with public sample places are shown.",
     "showNationwide": "Explore nationwide"
+  },
+  "help": {
+    "title": "Help",
+    "welcome": "A little help for your next save",
+    "intro": "Find your way around saving, organizing, and sharing places.",
+    "faqLabel": "Frequently asked questions",
+    "documents": "Terms & privacy",
+    "preparing": "Coming soon",
+    "original": "Official document",
+    "version": "Version {{version}} · Effective {{date}}",
+    "browserHint": "Opens in your browser. Close it or go back to return here. If the page does not load, return here and try opening it again.",
+    "openOriginal": "Open official document",
+    "documentUnavailable": "The official document is not connected in this language yet. Reading this guide does not count as accepting the Terms or Privacy Policy.",
+    "guideLabel": "App usage guide",
+    "guideNotice": "The information below explains app features. It is not the official Terms of Service or Privacy Policy.",
+    "linkErrorTitle": "Could not open the page",
+    "linkErrorBody": "Check your connection and browser, then try again. Your input on the previous screen is still there.",
+    "faq": {
+      "saving": {
+        "title": "Who can see the places I save?",
+        "body": "New places are private by default. My map shows your own saves, while Discover lets you explore other people’s places.\n\nSaving someone else’s place to your map does not copy their private notes or visit history.",
+        "hint": "Private notes, tags, visits, and folders are separate from public descriptions. Check a place’s visibility before making it public."
+      },
+      "search": {
+        "title": "I cannot find a place",
+        "body": "Check the selected region first. Choose a broader region or all of Korea, then search with part of the place name or address.\n\nBranches can have similar names. Check the address and region before saving.",
+        "hint": "Demo mode only searches example places in Seoul, Busan, and Jeju. Search across real restaurants is not connected yet."
+      },
+      "sharing": {
+        "title": "How do public maps and shared links differ?",
+        "body": "Other people can find a public map through Discover. A link-only map can be viewed by anyone with its link.\n\nA regional share contains the places selected when it is created. Places you save later are not added automatically.",
+        "hint": "Recipients can pass a link to someone else. In demo mode, shares are drafts on this device only; no working share link is issued."
+      },
+      "account": {
+        "title": "I need help with my account",
+        "body": "For an email login, choose password reset on the sign-in screen if you forget your password. If you joined with Google or Apple, use the same sign-in method.\n\nFind sign-out, record export, and account deletion information in Profile. Signing out and deleting an account are separate actions.",
+        "hint": "Email delivery and sign-in require a configured authentication service in this development version. The deletion screen provides information; actual account deletion is not connected yet."
+      },
+      "report": {
+        "title": "I found a problem with a map or place",
+        "body": "Open someone’s map in Discover to find profile and individual place reporting options. Check the target, choose a reason, and add details before reviewing the report.\n\nIn demo mode, blocking hides a person from Discover. You can unblock them in Profile.",
+        "hint": "The report screen currently supports writing and reviewing. Report submission and moderator handling are not connected yet."
+      },
+      "demo": {
+        "title": "Where are my demo records saved?",
+        "body": "Demo mode lets you explore the app with example places. Saves and edits stay on this device and do not sync to a real account or another device.\n\nClearing app data or reinstalling may erase those records. Export anything you need from Profile first.",
+        "hint": "Demo places and profiles are examples. They do not represent real restaurant information, published maps, working share links, or submitted reports."
+      }
+    },
+    "contact": {
+      "title": "Contact us",
+      "teaser": "Still need a hand?",
+      "body": "Find out where to ask for help or share an idea for improving the app.",
+      "checkTitle": "Before you get in touch",
+      "checkBody": "Note which screen you were on, what you were doing, what you expected, and what happened instead.\n\nInclude the app version and device type.",
+      "privateHint": "Do not send passwords, verification codes, or private notes. Hide personal information before attaching a screenshot.",
+      "channel": "Support channel",
+      "unavailable": "Support in this language is still being prepared. The app cannot send or receive inquiries yet. Please check the frequently asked questions for now.",
+      "open": "Open support page"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "recordsTitle": "Your personal place collection",
+      "recordsBody": "Save places and organize them with notes, visit status, and folders. This guide explains how to use the current app.",
+      "communityTitle": "Sharing with other people",
+      "communityBody": "Write public descriptions separately from private notes. Check that your public content respects other people’s privacy and rights.",
+      "changesTitle": "Conditions for the live service",
+      "changesBody": "The approved official document will explain minimum age, terms of use, account restrictions and closure, and policy changes. This feature guide does not define those conditions."
+    },
+    "privacy": {
+      "title": "Privacy Policy",
+      "privateTitle": "Private records and public descriptions",
+      "privateBody": "Private notes, tags, visit history, and folders are kept separate as your own records. Use public descriptions for information you want other people to see.",
+      "sharedTitle": "Check before sharing",
+      "sharedBody": "Review each place’s visibility and the places you select to share. Public maps and link-only maps have different audiences. Demo mode does not publish maps or share them externally.",
+      "controlTitle": "Data handling and inquiries",
+      "controlBody": "The approved Privacy Policy will explain collected data, purposes, retention, processors and transfers, and how to exercise your rights. This guide does not establish the actual data processing terms."
+    }
   }
 }
