@@ -146,16 +146,19 @@ export function Chip({
   selected = false,
   onPress,
   icon,
+  testID,
 }: {
   label: string;
   selected?: boolean;
   onPress: () => void;
   icon?: IconName;
+  testID?: string;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      testID={testID}
       onPress={onPress}
       style={({ pressed }) => ({
         minHeight: 44,

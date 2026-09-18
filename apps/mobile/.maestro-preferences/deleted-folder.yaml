@@ -1,0 +1,80 @@
+# Run after restore.yaml on the separate QA installation. Removes only its demo folder.
+appId: ${APP_ID}
+name: Recover from a deleted selected folder and keep cleared filters after restart
+---
+- launchApp
+- tapOn:
+    id: tab-map
+- tapOn:
+    id: map-mode-list
+- scrollUntilVisible:
+    element:
+      id: map-manage-folders
+    direction: DOWN
+- tapOn:
+    id: map-manage-folders
+- scrollUntilVisible:
+    element:
+      id: folder-delete-coffee
+    direction: DOWN
+- tapOn:
+    id: folder-delete-coffee
+- scrollUntilVisible:
+    element:
+      id: folder-confirm-delete-coffee
+    direction: DOWN
+- tapOn:
+    id: folder-confirm-delete-coffee
+- tapOn:
+    id: sheet-close
+- scrollUntilVisible:
+    element:
+      id: map-folder-all
+    direction: DOWN
+- assertVisible:
+    id: map-folder-all
+    selected: true
+- assertNotVisible:
+    id: map-folder-coffee
+- stopApp
+- launchApp
+- assertVisible:
+    id: map-mode-list
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: map-folder-all
+    direction: DOWN
+- assertVisible:
+    id: map-folder-all
+    selected: true
+- assertNotVisible:
+    id: map-folder-coffee
+- tapOn:
+    id: map-search
+- inputText: NoMatchingSavedPlace
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: map-clear-filters
+    direction: DOWN
+- tapOn:
+    id: map-clear-filters
+- stopApp
+- launchApp
+- scrollUntilVisible:
+    element:
+      id: map-status-all
+    direction: DOWN
+- assertVisible:
+    id: map-status-all
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: map-folder-all
+    direction: DOWN
+- assertVisible:
+    id: map-folder-all
+    selected: true
+- assertNotVisible: NoMatchingSavedPlace
+- takeScreenshot: deleted-folder-and-cleared-filters

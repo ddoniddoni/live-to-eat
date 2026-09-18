@@ -12,25 +12,25 @@ import { RegionPickerSheet } from '@/features/regions/RegionPickerSheet';
 import { PlaceCard } from '@/features/notebook/PlaceCard';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { MapCanvas } from './MapCanvas';
+import type { ViewPreferences } from '@/features/preferences/viewPreferences';
 
 type Props = {
   book: NotebookController;
   isDemo: boolean;
   region: string;
   onRegionChange: (region: string) => void;
+  preferences: ViewPreferences;
+  onPreferencesChange: (patch: Partial<ViewPreferences>) => void;
   onAdd: () => void;
   onPlace: (place: NotebookPlace) => void;
   onShare: (region: string) => void;
   onFolders: () => void;
 };
-export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPlace, onShare, onFolders }: Props) {
+export function MyMapScreen({ book, isDemo, region, onRegionChange, preferences, onPreferencesChange, onAdd, onPlace, onShare, onFolders }: Props) {
   const { t } = useTranslation();
-  const [status, setStatus] = useState('all');
-  const [folder, setFolder] = useState('all');
+  const { status, folder, mode, sort } = preferences;
   const [query, setQuery] = useState('');
-  const [mode, setMode] = useState<'list' | 'map'>('list');
   const [regionOpen, setRegionOpen] = useState(false);
-  const [sort, setSort] = useState<'recent' | 'name'>('recent');
   const regions = useMemo(
     () => buildRegionOptions(book.state.places),
     [book.state.places],
@@ -45,7 +45,8 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
           .toLocaleLowerCase()
           .includes(query.trim().toLocaleLowerCase()),
     );
-    return sort === 'name' ? result.toSorted((a, b) => a.displayName.localeCompare(b.displayName)) : result;
+    // filter() owns this new array; sort it without relying on Hermes support for toSorted().
+    return sort === 'name' ? result.sort((a, b) => a.displayName.localeCompare(b.displayName)) : result;
   }, [book.state.places, region, status, folder, query, sort]);
   const regionLabel =
     region === 'all'
@@ -54,7 +55,7 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
         ? t('map.unclassified')
         : (regions.find((r) => r.id === region)?.path.slice(1).map((p) => p.label).join(' · ') || regions.find((r) => r.id === region)?.label || t('regions.unknown'));
   const hasFilters = region !== 'all' || status !== 'all' || folder !== 'all' || query.trim().length > 0;
-  const clearFilters = () => { onRegionChange('all'); setStatus('all'); setFolder('all'); setQuery(''); };
+  const clearFilters = () => { onPreferencesChange({ mapRegion: 'all', status: 'all', folder: 'all' }); setQuery(''); };
   const renderPlace = useCallback(({ item }: { item: NotebookPlace }) => <PlaceCard place={item} onSelect={onPlace} />, [onPlace]);
   return (
     <View style={{ flex: 1 }}>
@@ -107,7 +108,8 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                     accessibilityRole="tab"
                     accessibilityLabel={t(`notebook.${item}View`)}
                     accessibilityState={{ selected: mode === item }}
-                    onPress={() => setMode(item)}
+                    testID={`map-mode-${item}`}
+                    onPress={() => onPreferencesChange({ mode: item })}
                     style={{
                       minWidth: 44,
                       minHeight: 44,
@@ -144,6 +146,7 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                 </View>
                 <Pressable
                   accessibilityRole="button"
+                  testID="map-manage-folders"
                   onPress={onFolders}
                   style={[
                     ui.row,
@@ -177,7 +180,8 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                   key={s}
                   label={t(`notebook.${s}`)}
                   selected={status === s}
-                  onPress={() => setStatus(s)}
+                  testID={`map-status-${s}`}
+                  onPress={() => onPreferencesChange({ status: s as ViewPreferences['status'] })}
                 />
               ))}
             </ScrollView>
@@ -195,6 +199,7 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
             >
               <Icon name="search" size={18} color={colors.muted} />
               <TextInput
+                testID="map-search"
                 accessibilityLabel={t('notebook.search')}
                 placeholder={t('notebook.search')}
                 placeholderTextColor={colors.muted}
@@ -215,7 +220,8 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                 <Chip
                   label={t('notebook.allFolders')}
                   selected={folder === 'all'}
-                  onPress={() => setFolder('all')}
+                  testID="map-folder-all"
+                  onPress={() => onPreferencesChange({ folder: 'all' })}
                 />
                 {book.state.collections.map((c) => (
                   <Chip
@@ -223,7 +229,8 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                     icon="folder"
                     label={c.name}
                     selected={folder === c.id}
-                    onPress={() => setFolder(c.id)}
+                    testID={`map-folder-${c.id}`}
+                    onPress={() => onPreferencesChange({ folder: c.id })}
                   />
                 ))}
               </ScrollView>
@@ -234,7 +241,8 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
               </Text>
               <Pressable
                 accessibilityRole="button"
-                onPress={() => setSort((s) => (s === 'recent' ? 'name' : 'recent'))}
+                testID={`map-sort-${sort}`}
+                onPress={() => onPreferencesChange({ sort: sort === 'recent' ? 'name' : 'recent' })}
                 style={[ui.row, { minHeight: 44, gap: 4 }]}
               >
                 <Text style={ui.muted}>{t(`notebook.${sort}`)}</Text>
@@ -278,7 +286,7 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
                 <Action
                   label={t('notebook.listView')}
                   secondary
-                  onPress={() => setMode('list')}
+                  onPress={() => onPreferencesChange({ mode: 'list' })}
                   icon="list"
                 />
               </View>
@@ -291,7 +299,7 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, onAdd, onPla
             <Empty
               title={t(hasFilters ? 'notebook.filteredEmptyTitle' : 'notebook.emptyTitle')}
               body={t(hasFilters ? 'notebook.filteredEmptyBody' : 'notebook.emptyBody')}
-              action={hasFilters ? <Action secondary label={t('notebook.clearFilters')} onPress={clearFilters} /> : <Action label={t('map.addPlace')} onPress={onAdd} icon="plus" />}
+              action={hasFilters ? <Action testID="map-clear-filters" secondary label={t('notebook.clearFilters')} onPress={clearFilters} /> : <Action label={t('map.addPlace')} onPress={onAdd} icon="plus" />}
             />
           ) : null
         }

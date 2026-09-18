@@ -1,0 +1,112 @@
+# Separate QA installation, demo mode. Does not clear app data.
+appId: ${APP_ID}
+name: Restore view settings after tab changes and process restart
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: welcome-start
+    commands:
+      - tapOn:
+          id: welcome-start
+- tapOn:
+    id: tab-map
+- tapOn:
+    id: region-picker-open
+- tapOn:
+    id: region-root
+- tapOn:
+    id: region-kr
+- tapOn:
+    id: region-seoul
+- tapOn:
+    id: region-apply
+- scrollUntilVisible:
+    element:
+      id: map-status-visited
+    direction: DOWN
+- tapOn:
+    id: map-status-visited
+- scrollUntilVisible:
+    element:
+      id: map-folder-coffee
+    direction: DOWN
+- tapOn:
+    id: map-folder-coffee
+- scrollUntilVisible:
+    element:
+      id: map-sort-.*
+    direction: DOWN
+- runFlow:
+    when:
+      visible:
+        id: map-sort-recent
+    commands:
+      - tapOn:
+          id: map-sort-recent
+- scrollUntilVisible:
+    element:
+      id: map-mode-map
+    direction: UP
+- tapOn:
+    id: map-mode-map
+- tapOn:
+    id: tab-discover
+- tapOn:
+    id: region-picker-open
+- tapOn:
+    id: region-root
+- tapOn:
+    id: region-jeju
+- tapOn:
+    id: region-apply
+- tapOn:
+    id: tab-map
+- assertVisible:
+    id: map-mode-map
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: map-search
+    direction: DOWN
+- tapOn:
+    id: map-search
+- inputText: NeverPersistThisSearch
+- hideKeyboard
+- stopApp
+- launchApp
+- assertVisible:
+    id: map-mode-map
+    selected: true
+- assertVisible:
+    id: region-picker-open
+    text: .*서울.*
+- assertNotVisible: NeverPersistThisSearch
+- scrollUntilVisible:
+    element:
+      id: map-status-visited
+    direction: DOWN
+- assertVisible:
+    id: map-status-visited
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: map-folder-coffee
+    direction: DOWN
+- assertVisible:
+    id: map-folder-coffee
+    selected: true
+- scrollUntilVisible:
+    element:
+      id: map-sort-name
+    direction: DOWN
+- takeScreenshot: restored-view-settings
+- tapOn:
+    id: tab-discover
+- assertVisible:
+    id: region-picker-open
+    text: .*제주.*
+- takeScreenshot: restored-discover-region
+- tapOn:
+    id: tab-map
