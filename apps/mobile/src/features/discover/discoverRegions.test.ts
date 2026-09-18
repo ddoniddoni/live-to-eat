@@ -1,9 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { inRegion, notebookSchema } from '@live-to-eat/domain';
 import { demoCatalog, demoPeople, createDemoNotebook } from '@/features/notebook/demoData';
-import { publicPlacesInRegion } from './discoverRegions';
+import { countPublicPlacesByPerson, publicPlacesInRegion } from './discoverRegions';
 
 describe('domestic discovery without a service connection', () => {
+  it('counts unique public IDs only, including missing IDs and people with no regional places', () => {
+    const people = [
+      { handle: 'one', ids: ['demo-table', 'demo-table', 'missing'] },
+      { handle: 'two', ids: ['demo-busan-noodle'] },
+      { handle: 'empty', ids: [] },
+    ];
+    const counts = countPublicPlacesByPerson(demoCatalog, people, 'seoul');
+    expect(counts.map((person) => person.publicPlaceCount)).toEqual([1, 0, 0]);
+    expect(counts[0]?.ids).toBe(people[0]?.ids);
+    expect(counts[0]).not.toHaveProperty('note');
+  });
+  it('matches public selections for 500 people without including unselected private records', () => {
+    const people = Array.from({ length: 500 }, (_, i) => ({ handle: `qa-${i}`, ids: demoPeople[i % demoPeople.length]!.ids }));
+    for (const region of ['kr', 'seoul', 'busan', 'jeju', 'unknown']) {
+      expect(countPublicPlacesByPerson(demoCatalog, people, region).map((p) => p.publicPlaceCount))
+        .toEqual(people.map((p) => publicPlacesInRegion(demoCatalog, p.ids, region).length));
+    }
+  });
   it('counts actual public places in a region, even when the author is based elsewhere', () => {
     const person = demoPeople.find((p) => p.handle === 'bada_busan')!;
     expect(publicPlacesInRegion(demoCatalog, person.ids, 'seogwipo').map((p) => p.savedId)).toEqual([

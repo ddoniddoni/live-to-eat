@@ -1,0 +1,37 @@
+# Run at system font_scale 2.0 with the isolated performance fixtures.
+appId: ${APP_ID}
+name: Browse and save from a long public map with large text
+---
+- stopApp
+- launchApp
+- tapOn:
+    id: tab-discover
+- scrollUntilVisible:
+    element:
+      id: discover-search
+    direction: DOWN
+- tapOn:
+    id: discover-search
+- inputText: "0000"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: discover-person-name-qa_person_0000
+    direction: DOWN
+- takeScreenshot: public-person-large-text
+- tapOn:
+    id: discover-person-qa_person_0000
+- scrollUntilVisible:
+    element:
+      id: public-save-perf-public-0002
+    direction: DOWN
+    timeout: 40000
+- takeScreenshot: public-place-large-text
+- tapOn:
+    id: public-save-perf-public-0002
+- assertVisible:
+    id: public-save-perf-public-0002
+    enabled: false
+- assertNotVisible: .*PRIVATE-NOTE.*
+- tapOn:
+    id: sheet-close

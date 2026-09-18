@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { RequestError } from '@/components/ui/RequestError';
-import { buildRegionOptions, inRegion, type NotebookPlace } from '@live-to-eat/domain';
+import { buildRegionOptions, type NotebookPlace } from '@live-to-eat/domain';
 import { colors } from '@/components/tokens';
 import { Icon } from '@/components/ui/Icon';
 import { MapArtwork } from '@/components/ui/Artwork';
@@ -13,6 +13,7 @@ import { PlaceCard } from '@/features/notebook/PlaceCard';
 import type { NotebookController } from '@/features/notebook/useNotebook';
 import { MapCanvas } from './MapCanvas';
 import type { ViewPreferences } from '@/features/preferences/viewPreferences';
+import { indexSavedPlaces, selectSavedPlaces } from './savedPlaceSelection';
 
 type Props = {
   book: NotebookController;
@@ -27,7 +28,7 @@ type Props = {
   onFolders: () => void;
 };
 export function MyMapScreen({ book, isDemo, region, onRegionChange, preferences, onPreferencesChange, onAdd, onPlace, onShare, onFolders }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { status, folder, mode, sort } = preferences;
   const [query, setQuery] = useState('');
   const [regionOpen, setRegionOpen] = useState(false);
@@ -35,19 +36,9 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, preferences,
     () => buildRegionOptions(book.state.places),
     [book.state.places],
   );
-  const filtered = useMemo(() => {
-    const result = book.state.places.filter(
-      (p) =>
-        inRegion(p, region) &&
-        (status === 'all' || (status === 'recommended' && p.isRecommended) || p.visitStatus === status) &&
-        (folder === 'all' || p.collectionId === folder) &&
-        `${p.displayName} ${p.tags.join(' ')} ${p.note}`
-          .toLocaleLowerCase()
-          .includes(query.trim().toLocaleLowerCase()),
-    );
-    // filter() owns this new array; sort it without relying on Hermes support for toSorted().
-    return sort === 'name' ? result.sort((a, b) => a.displayName.localeCompare(b.displayName)) : result;
-  }, [book.state.places, region, status, folder, query, sort]);
+  const searchIndex = useMemo(() => indexSavedPlaces(book.state.places, i18n.language), [book.state.places, i18n.language]);
+  const filtered = useMemo(() => selectSavedPlaces(searchIndex, { mapRegion: region, status, folder, query, sort }),
+    [searchIndex, region, status, folder, query, sort]);
   const regionLabel =
     region === 'all'
       ? t('regions.allSaved')
@@ -60,6 +51,11 @@ export function MyMapScreen({ book, isDemo, region, onRegionChange, preferences,
   return (
     <View style={{ flex: 1 }}>
       <FlatList
+        testID="saved-place-list"
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
+        removeClippedSubviews={false}
         data={mode === 'list' ? filtered : []}
         keyExtractor={(p) => p.savedId}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 110 }}
