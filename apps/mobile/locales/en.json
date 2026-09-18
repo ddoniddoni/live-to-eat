@@ -1,4 +1,8 @@
 {
+  "viewPreferences": {
+    "readError": "Your previous view settings couldn’t be loaded. You can use the default view or try loading them again.",
+    "writeError": "Your selection is still in use, but couldn’t be saved on this device. Try again to keep it for your next visit."
+  },
   "bootstrap": {
     "label": "project foundation",
     "statement": "Live to eat. Save every place worth returning to.",

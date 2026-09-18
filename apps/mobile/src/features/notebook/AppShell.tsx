@@ -23,6 +23,8 @@ import { FoldersSheet } from './FoldersSheet';
 import { WelcomeSheet } from './WelcomeSheet';
 import { RequestError } from '@/components/ui/RequestError';
 import { useRequest } from '@/lib/requests/useRequest';
+import { useViewPreferences } from '@/features/preferences/useViewPreferences';
+import { PreferencesNotice } from '@/features/preferences/PreferencesNotice';
 
 type Overlay =
   | { type: 'search'; region: string }
@@ -33,14 +35,17 @@ type Overlay =
   | null;
 export function AppShell({
   isDemo,
+  storageScope,
   onSignOut,
 }: {
   isDemo: boolean;
+  storageScope: string;
   onSignOut?: (() => Promise<void>) | undefined;
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const book = useNotebook(isDemo);
+  const preferences = useViewPreferences(storageScope, isDemo, book);
   const welcome = useRequest();
   const queryClient = useQueryClient();
   const updateNotebook = book.update;
@@ -49,8 +54,9 @@ export function AppShell({
   }, [updateNotebook]);
   useEffect(() => { if (!isDemo) return () => queryClient.clear(); }, [isDemo, queryClient]);
   const [tab, setTab] = useState<'map' | 'discover' | 'profile'>('map');
-  const [mapRegion, setMapRegion] = useState('all');
-  const [discoverRegion, setDiscoverRegion] = useState(isDemo ? 'kr' : 'all');
+  const { mapRegion, discoverRegion } = preferences.value;
+  const setMapRegion = (region: string) => { void preferences.update({ mapRegion: region }); };
+  const setDiscoverRegion = (region: string) => { void preferences.update({ discoverRegion: region }); };
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [tabBarHeight, setTabBarHeight] = useState(76);
@@ -105,7 +111,7 @@ export function AppShell({
     setToast(t('common.saved'));
   };
   const openPlace = (place: NotebookPlace) => setOverlay({ type: 'place', place, isNew: false });
-  if (book.loading && !book.loaded)
+  if (!preferences.ready || (book.loading && !book.loaded))
     return (
       <SafeAreaView
         style={{
@@ -131,12 +137,15 @@ export function AppShell({
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.canvas }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 600, alignSelf: 'center' }}>
+        {preferences.error ? <PreferencesNotice error={preferences.error} onRetry={() => { void preferences.retry(); }} /> : null}
         {tab === 'map' ? (
           <MyMapScreen
             book={book}
             isDemo={isDemo}
             region={mapRegion}
             onRegionChange={setMapRegion}
+            preferences={preferences.value}
+            onPreferencesChange={(patch) => { void preferences.update(patch); }}
             onAdd={openSearch}
             onPlace={openPlace}
             onShare={(region) => setOverlay({ type: 'share', region })}

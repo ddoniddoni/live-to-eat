@@ -27,7 +27,9 @@ export default function HomeScreen() {
   }, [auth.locale]);
 
   if (!introFinished || auth.status === 'loading') return <LaunchScreen />;
-  if (authPreviewMode) return <AppShell isDemo />;
+  if (authPreviewMode) return <AppShell key="demo" isDemo storageScope="demo" />;
   if (auth.status !== 'active') return <AuthGate auth={auth} onChangeLanguage={changeLanguage} />;
-  return <AppShell isDemo={false} onSignOut={auth.signOut} />;
+  if (!auth.accountId) return <LaunchScreen />;
+  const scope = `account-${auth.accountId}`;
+  return <AppShell key={scope} storageScope={scope} isDemo={false} onSignOut={auth.signOut} />;
 }

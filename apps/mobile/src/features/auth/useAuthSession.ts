@@ -44,6 +44,7 @@ type AuthStatus =
   | 'signed-out';
 
 type AuthSessionState = {
+  accountId?: string;
   error: AuthFailureCode | null;
   locale: SupportedLocale | null;
   pendingEmail: string | null;
@@ -74,14 +75,14 @@ const initialState = (): AuthSessionState => ({
   status: isAuthPreviewMode() ? 'active' : isSupabaseConfigured() ? 'loading' : 'configuration-required',
 });
 
-const stateForAccount = async (accountState: AccountState): Promise<AuthSessionState> => {
+const stateForAccount = async (accountState: AccountState, accountId: string): Promise<AuthSessionState> => {
   if (accountState === 'onboarding') {
     return { error: null, locale: null, pendingEmail: null, status: 'onboarding' };
   }
 
   if (accountState === 'active') {
     const locale = await getActiveProfileLocale();
-    return { error: null, locale, pendingEmail: null, status: 'active' };
+    return { accountId, error: null, locale, pendingEmail: null, status: 'active' };
   }
 
   return { error: 'ACCOUNT_BLOCKED', locale: null, pendingEmail: null, status: 'account-blocked' };
@@ -123,7 +124,7 @@ export const useAuthSession = (): AuthSessionController => {
       if (error) throw error;
 
       const nextState = session
-        ? await stateForAccount(await bootstrapAccount())
+        ? await stateForAccount(await bootstrapAccount(), session.user.id)
         : { error: null, locale: null, pendingEmail: null, status: 'signed-out' as const };
 
       if (mounted.current && revision.current === currentRevision) setState(nextState);

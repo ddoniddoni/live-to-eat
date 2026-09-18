@@ -126,6 +126,7 @@ export function FoldersSheet({
             />
             <IconButton
               name="trash"
+              testID={`folder-delete-${c.id}`}
               label={`${c.name} ${t('folders.delete')}`}
               onPress={() => setDeleting(c.id)}
             />
@@ -133,7 +134,7 @@ export function FoldersSheet({
           {deleting === c.id ? (
             <>
               <Text style={ui.muted}>{t('folders.description')}</Text>
-              <Action danger label={t('folders.delete')} busy={busy} onPress={() => void remove(c.id)} />
+              <Action testID={`folder-confirm-delete-${c.id}`} danger label={t('folders.delete')} busy={busy} onPress={() => void remove(c.id)} />
               <Action secondary label={t('common.cancel')} onPress={() => setDeleting(null)} />
             </>
           ) : null}
