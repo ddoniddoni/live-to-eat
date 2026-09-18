@@ -110,7 +110,8 @@ export function AppShell({
     }
     setToast(t('common.saved'));
   };
-  const openPlace = (place: NotebookPlace) => setOverlay({ type: 'place', place, isNew: false });
+  const openPlace = useCallback((place: NotebookPlace) => setOverlay({ type: 'place', place, isNew: false }), []);
+  const showSaved = useCallback(() => setToast(t('common.saved')), [t]);
   if (!preferences.ready || (book.loading && !book.loaded))
     return (
       <SafeAreaView
@@ -152,7 +153,7 @@ export function AppShell({
             onFolders={() => setOverlay({ type: 'folders' })}
           />
         ) : tab === 'discover' ? (
-          <DiscoverScreen book={book} isDemo={isDemo} region={discoverRegion} onRegionChange={setDiscoverRegion} onSaved={() => setToast(t('common.saved'))} />
+          <DiscoverScreen book={book} isDemo={isDemo} region={discoverRegion} onRegionChange={setDiscoverRegion} onSaved={showSaved} />
         ) : (
           <ProfileScreen
             book={book}

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { NotebookPlace } from '@live-to-eat/domain';
@@ -6,7 +7,7 @@ import { Icon } from '@/components/ui/Icon';
 import { ui } from '@/components/ui/primitives';
 import { colors } from '@/components/tokens';
 import { artKind } from './placeAppearance';
-export function PlaceCard({
+export const PlaceCard = memo(function PlaceCard({
   place,
   onPress,
   onSelect,
@@ -92,4 +93,4 @@ export function PlaceCard({
       )}
     </Pressable>
   );
-}
+});

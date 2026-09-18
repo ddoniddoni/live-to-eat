@@ -1,0 +1,93 @@
+# Requires the isolated 500-record performance fixtures described in docs/04_DEVELOPMENT.md.
+appId: ${APP_ID}
+name: Search and filter 500 records and browse virtualized public maps
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: sheet-close
+    commands:
+      - tapOn:
+          id: sheet-close
+- tapOn:
+    id: tab-map
+- scrollUntilVisible:
+    element:
+      id: map-search
+    direction: DOWN
+- tapOn:
+    id: map-search
+- inputText: PRIVATE-NOTE-0499
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: saved-place-perf-owned-0499
+    direction: DOWN
+- assertVisible: QA Place 0499
+- tapOn:
+    id: saved-place-perf-owned-0499
+- assertVisible: QA Place 0499
+- tapOn:
+    id: sheet-close
+- scrollUntilVisible:
+    element:
+      id: map-search
+    direction: UP
+- tapOn: 지우기
+- scrollUntilVisible:
+    element:
+      id: map-status-visited
+    direction: UP
+- tapOn:
+    id: map-status-visited
+- scrollUntilVisible:
+    element:
+      id: saved-place-perf-owned-0001
+    direction: DOWN
+- assertNotVisible:
+    id: saved-place-perf-owned-0000
+- takeScreenshot: private-500-filtered
+- tapOn:
+    id: tab-discover
+- tapOn:
+    id: discover-search
+- inputText: 0499
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: discover-person-qa_person_0499
+    direction: DOWN
+- tapOn:
+    id: discover-person-qa_person_0499
+- assertVisible: QA Place 0499
+- assertNotVisible: .*PRIVATE-NOTE.*
+- tapOn:
+    id: public-save-perf-public-0499
+- assertVisible: 저장됨
+- tapOn:
+    id: sheet-close
+- scrollUntilVisible:
+    element:
+      id: discover-search
+    direction: UP
+- tapOn:
+    id: discover-search
+    point: "95%,50%"
+- eraseText
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: discover-person-qa_person_0000
+    direction: DOWN
+- tapOn:
+    id: discover-person-qa_person_0000
+- scrollUntilVisible:
+    element:
+      id: public-place-perf-public-0012
+    direction: DOWN
+    timeout: 40000
+- takeScreenshot: public-500-scrolled
+- assertNotVisible: .*PRIVATE-NOTE.*
+- tapOn:
+    id: sheet-close
